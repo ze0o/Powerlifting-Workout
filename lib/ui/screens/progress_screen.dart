@@ -34,6 +34,8 @@ class ProgressScreen extends StatelessWidget {
             children: [
               const TotalCard(),
               const SizedBox(height: 12),
+              const WeekLoadCard(),
+              const SizedBox(height: 12),
               const RecordsCard(),
               const SizedBox(height: 12),
               for (final l in kLifts) ...[LiftCard(lift: l), const SizedBox(height: 12)],
@@ -175,6 +177,36 @@ class LiftCard extends StatelessWidget {
               ]), style: const TextStyle(fontFeatures: kTabular)),
             ],
           ),
+          if (top != null && r25(top) >= m + 2.5) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+              decoration: BoxDecoration(
+                color: p.ok.withAlpha(24),
+                border: Border.all(color: p.ok.withAlpha(120)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(children: [
+                Icon(Icons.trending_up, color: p.ok, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Your estimated max is ${fmt(r25(top))} kg, above your ${fmt(m)} kg max.',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final ok = await confirmDialog(context,
+                        title: 'Update your ${kLiftNames[lift]!.toLowerCase()} max to ${fmt(r25(top))} kg?',
+                        body: 'Every % target for this lift goes up. RPE adjustments for it are cleared, '
+                            'because the new max already includes them.',
+                        action: 'Update max');
+                    if (ok) store.updateMax(lift, r25(top));
+                  },
+                  child: const Text('Update'),
+                ),
+              ]),
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(spacing: 14, children: [
             _fact(context, 'Start', m),
@@ -285,6 +317,74 @@ class RecordsCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Text('Log squat, bench or deadlift sets and your records appear here.',
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// This week's hard sets by area, compared with last week, plus fatigue warnings.
+class WeekLoadCard extends StatelessWidget {
+  const WeekLoadCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final p = Palette.of(context);
+    final w = store.week;
+    final load = store.weekLoad(w);
+    final areas = {...load.sets.keys, ...load.prevSets.keys}.toList()
+      ..sort((a, b) => (load.sets[b] ?? 0).compareTo(load.sets[a] ?? 0));
+    final most = [for (final a in areas) (load.sets[a] ?? 0) > (load.prevSets[a] ?? 0) ? (load.sets[a] ?? 0) : (load.prevSets[a] ?? 0)]
+        .fold<int>(1, (a, b) => a > b ? a : b);
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WEEK $w LOAD', style: headingStyle(context, size: 18)),
+          const SizedBox(height: 2),
+          Text('Hard sets by area. The grey bar is last week. Change the week on the Program tab.',
+              style: TextStyle(color: p.muted, fontSize: 12.5)),
+          const SizedBox(height: 12),
+          if (areas.isEmpty)
+            Text('No sets logged this week yet.', style: TextStyle(color: p.muted, fontSize: 13)),
+          for (final a in areas)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(children: [
+                SizedBox(width: 86, child: Text(a, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600))),
+                Expanded(
+                  child: LayoutBuilder(builder: (context, c) {
+                    final now = load.sets[a] ?? 0, before = load.prevSets[a] ?? 0;
+                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Container(height: 8, width: c.maxWidth * now / most, color: p.navy == Palette.dark.navy ? p.blue : p.navy),
+                      const SizedBox(height: 2),
+                      Container(height: 4, width: c.maxWidth * before / most, color: p.line),
+                    ]);
+                  }),
+                ),
+                SizedBox(
+                  width: 52,
+                  child: Text('${load.sets[a] ?? 0} / ${load.prevSets[a] ?? 0}',
+                      textAlign: TextAlign.right, style: const TextStyle(fontSize: 12.5, fontFeatures: kTabular)),
+                ),
+              ]),
+            ),
+          for (final msg in load.warnings)
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: p.warn.withAlpha(24),
+                border: Border.all(color: p.warn.withAlpha(120)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.warning_amber_rounded, color: p.warn, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text(msg, style: const TextStyle(fontSize: 13))),
+              ]),
             ),
         ],
       ),

@@ -42,11 +42,11 @@
 - [x] **Export:** sets and body data as CSV, copied to the clipboard (v2.1). *Still to do: save as a file and share.*
 
 ### Phase 2: smart coaching (the reason to switch from Hevy/Strong)
-- [ ] **RPE auto-regulation:** if the top single is RPE ≤ 7, next week's main lift goes up 2.5–5 kg. At RPE 9 or more, hold it.
-- [ ] **e1RM → update max prompt:** "Your squat e1RM is 158. Update your max from 150?"
-- [ ] **Readiness check:** sleep, stress and soreness before the session, with a suggested load change.
-- [ ] **Weekly volume per muscle group** and a fatigue warning.
-- [ ] **Bodyweight trend** (7-day average) and "kg per week" against your cut target.
+- [x] **RPE auto-regulation:** suggested changes after each workout, with undo (v2.3).
+- [x] **e1RM → update max prompt** (v2.3).
+- [x] **Readiness check** with a suggested load for the day (v2.3).
+- [x] **Weekly hard sets by area** and fatigue warnings (v2.3).
+- [x] **Bodyweight trend:** 7-day average, kg per week, weeks to your meet range (v2.3).
 
 ### Phase 3: competition features (what makes it *the* powerlifting app)
 - [ ] **Meet planner:** enter the meet date, and the program aligns its peak and taper to it.

@@ -66,6 +66,26 @@ class ProgramScreen extends StatelessWidget {
             ],
           ),
         ),
+        if (prog.adjustments.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+            child: Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final a in prog.adjustments)
+                InputChip(
+                  avatar: Icon(a.kg > 0 ? Icons.trending_up : Icons.trending_down,
+                      size: 16, color: a.kg > 0 ? p.ok : p.warn),
+                  label: Text('${kLiftNames[a.lift]} ${a.kg > 0 ? '+' : '−'}${fmt(a.kg.abs())} kg from W${a.fromWeek}'),
+                  tooltip: a.reason,
+                  onDeleted: () async {
+                    final ok = await confirmDialog(context,
+                        title: 'Undo this change?',
+                        body: '${a.reason}. Targets from week ${a.fromWeek} go back to your max.',
+                        action: 'Undo');
+                    if (ok) store.removeAdjustment(a.id);
+                  },
+                ),
+            ]),
+          ),
         if (list.isEmpty)
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -291,7 +311,7 @@ class WorkoutCard extends StatelessWidget {
                               LiftTag(s.lift!),
                               const SizedBox(width: 6),
                               Expanded(
-                                child: Text(s.summary(store.profile.maxes),
+                                child: Text(s.summary(store.maxesFor(w)),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(fontSize: 12.5, fontFeatures: kTabular)),

@@ -14,6 +14,8 @@ import 'templates.dart';
 typedef WorkoutStats = ({int done, int planned, double volume});
 typedef MetricValue = ({double value, String date, double? delta});
 typedef PersonalRecord = ({double kg, String date, String reps});
+typedef BodyTrend = ({double? avg7, double? prevAvg7, double? ratePerWeek, int points});
+typedef WeekLoad = ({Map<String, int> sets, Map<String, int> prevSets, List<String> warnings});
 
 class AppStore extends ChangeNotifier {
   static const _key = 'meet_prep_log_v2';
@@ -442,7 +444,7 @@ class AppStore extends ChangeNotifier {
     for (var i = 0; i < s.plan.length; i++) {
       final t = s.plan[i];
       final r = _row(s, i);
-      final kg = s.targetKg(t, profile.maxes);
+      final kg = s.targetKg(t, maxesFor(workout(workoutId)!));
       if (r.w.trim().isEmpty && kg != null) r.w = fmt(kg);
       if (r.r.trim().isEmpty && RegExp(r'^\d+$').hasMatch(t.reps)) r.r = t.reps;
     }
@@ -494,9 +496,11 @@ class AppStore extends ChangeNotifier {
     _touch();
   }
 
-  void startWorkout(String id) {
+  void startWorkout(String id, {Readiness? readiness, double? loadScale}) {
     final w = workout(id);
     if (w == null) return;
+    if (readiness != null) w.readiness = readiness;
+    if (loadScale != null) w.loadScale = loadScale;
     w.startedAt = DateTime.now().toIso8601String();
     w.completed = false;
     _touch(bump: true);
@@ -588,6 +592,218 @@ class AppStore extends ChangeNotifier {
   // ======================================================================
 
   // ======================================================================
+  // smart coaching: adjusted maxes, RPE auto-regulation, readiness, load
+  // ======================================================================
+
+  /// Maxes for one workout: profile maxes, plus RPE adjustments that apply from
+  /// its week, times today's load scale from the readiness check.
+  Map<String, double> maxesFor(Workout w) {
+    final p = active;
+    return p == null ? {...profile.maxes} : _maxesIn(p, w);
+  }
+
+  Map<String, double> _maxesIn(Program p, Workout w) {
+    final out = {...profile.maxes};
+    for (final a in p.adjustments) {
+      if (w.week >= a.fromWeek && out.containsKey(a.lift)) out[a.lift] = out[a.lift]! + a.kg;
+    }
+    if (w.loadScale != 1.0) out.updateAll((_, v) => v * w.loadScale);
+    return out;
+  }
+
+  /// Total RPE adjustment for a lift that applies in a given week.
+  double adjustmentFor(String lift, int week) {
+    final p = active;
+    if (p == null) return 0;
+    var kg = 0.0;
+    for (final a in p.adjustments) {
+      if (a.lift == lift && week >= a.fromWeek) kg += a.kg;
+    }
+    return kg;
+  }
+
+  static double? _rpeHigh(String rpe) {
+    final parts = rpe.split(RegExp(r'[–\-]')).map((x) => parseNum(x)).whereType<double>().toList();
+    return parts.isEmpty ? null : parts.last;
+  }
+
+  /// After a workout: compare the heaviest planned set of each competition lift
+  /// with the RPE you logged, and suggest a change for the rest of the program.
+  List<Adjustment> suggestAdjustments(Workout w) {
+    final p = active;
+    if (p == null || w.week >= p.weeks) return [];
+    if (p.adjustments.any((a) => a.sourceWorkoutId == w.id)) return [];
+    final maxes = _maxesIn(p, w);
+    final out = <Adjustment>[];
+    for (final s in w.exercises) {
+      if (s.lift == null || s.pctOf != s.lift || s.plan.isEmpty) continue;
+      if (s.plan.any((t) => t.label.contains('attempt'))) continue;
+      // Reference set: the top single if there is one, otherwise the heaviest planned set.
+      var ref = s.plan.indexWhere((t) => t.label == 'Top single');
+      if (ref < 0) {
+        var best = -1.0;
+        for (var i = 0; i < s.plan.length; i++) {
+          final kg = s.targetKg(s.plan[i], maxes) ?? -1;
+          if (kg > best) {
+            best = kg;
+            ref = i;
+          }
+        }
+      }
+      if (ref < 0 || ref >= s.log.length) continue;
+      final t = s.plan[ref], x = s.log[ref];
+      final target = _rpeHigh(t.rpe);
+      final planned = s.targetKg(t, maxes);
+      final lifted = parseNum(x.w);
+      if (target == null || target < 7 || planned == null || lifted == null) continue;
+      final unit = s.lift == 'bench' ? 2.5 : 5.0;
+      int steps;
+      String why;
+      final what = t.label == 'Top single' ? 'Top single' : 'Heaviest set';
+      if (x.status == 2) {
+        steps = -2;
+        why = '$what at ${fmt(lifted)} kg was missed';
+      } else {
+        final rpe = parseNum(x.rpe);
+        if (rpe == null) continue;
+        final diff = rpe - target;
+        steps = diff <= -1.5 ? 2 : (diff <= -0.75 ? 1 : (diff >= 1.0 ? -1 : 0));
+        if (steps > 0 && lifted < planned - 0.1) steps = 0; // used less than planned: no increase
+        why = '$what at ${fmt(lifted)} kg felt RPE ${fmt(rpe)} (target ${t.rpe})';
+      }
+      if (steps == 0) continue;
+      out.add(Adjustment(
+        id: uid('adj'),
+        lift: s.lift!,
+        fromWeek: w.week + 1,
+        kg: steps * unit,
+        reason: why,
+        sourceWorkoutId: w.id,
+      ));
+    }
+    return out;
+  }
+
+  void applyAdjustments(List<Adjustment> list) {
+    final p = active;
+    if (p == null || list.isEmpty) return;
+    p.adjustments.addAll(list);
+    _touch(bump: true);
+  }
+
+  void removeAdjustment(String id) {
+    active?.adjustments.removeWhere((a) => a.id == id);
+    _touch(bump: true);
+  }
+
+  /// Sets a new max. RPE adjustments for that lift are cleared, since the new max already includes them.
+  void updateMax(String lift, double kg) {
+    profile.maxes[lift] = kg;
+    active?.adjustments.removeWhere((a) => a.lift == lift);
+    _touch(bump: true);
+  }
+
+  void setLoadScale(String workoutId, double scale) {
+    workout(workoutId)?.loadScale = scale;
+    _touch(bump: true);
+  }
+
+  void setReadiness(String workoutId, Readiness r) {
+    workout(workoutId)?.readiness = r;
+    _touch(bump: true);
+  }
+
+  String categoryOf(ExerciseSlot s) {
+    for (final d in library) {
+      if (d.id == s.defId) return d.category;
+    }
+    return 'Other';
+  }
+
+  Map<String, int> _setsByArea(int week) {
+    final out = <String, int>{};
+    for (final w in workoutsInWeek(week)) {
+      for (final e in w.exercises) {
+        final cat = categoryOf(e);
+        if (cat == 'Conditioning') continue;
+        for (final x in e.log) {
+          if (x.status == 2 || x.r.trim().isEmpty) continue;
+          out[cat] = (out[cat] ?? 0) + 1;
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Hard sets per area this week and last week, plus fatigue warnings.
+  WeekLoad weekLoad(int week) {
+    final sets = _setsByArea(week);
+    final prev = week > 1 ? _setsByArea(week - 1) : <String, int>{};
+    final warnings = <String>[];
+    final rpes = <double>[];
+    var missed = 0;
+    final scores = <int>[];
+    for (final w in workoutsInWeek(week)) {
+      if (w.readiness != null) scores.add(w.readiness!.score);
+      for (final e in w.exercises) {
+        if (e.lift == null) continue;
+        for (final x in e.log) {
+          if (x.status == 2) missed++;
+          final r = parseNum(x.rpe);
+          if (r != null && x.status != 2) rpes.add(r);
+        }
+      }
+    }
+    if (rpes.length >= 3) {
+      final avg = rpes.reduce((a, b) => a + b) / rpes.length;
+      if (avg >= 8.8) {
+        warnings.add('Your competition lifts averaged RPE ${fmt1(avg)} this week. '
+            'That is close to max effort; plan an easier week soon.');
+      }
+    }
+    final now = sets.values.fold<int>(0, (a, b) => a + b), before = prev.values.fold<int>(0, (a, b) => a + b);
+    if (before >= 10 && now > before * 1.3) {
+      warnings.add('You did ${((now / before - 1) * 100).round()}% more hard sets than last week. '
+          'Big jumps raise injury risk.');
+    }
+    if (missed >= 2) warnings.add('$missed missed sets on competition lifts this week.');
+    if (scores.length >= 2) {
+      final avg = scores.reduce((a, b) => a + b) / scores.length;
+      if (avg < 50) warnings.add('Readiness averaged ${avg.round()} this week. Sleep and food come first.');
+    }
+    return (sets: sets, prevSets: prev, warnings: warnings);
+  }
+
+  /// 7-day average weight, the 7 days before it, and the rate (kg/week) over the last 21 days.
+  BodyTrend bodyTrend() {
+    final list = bodySorted.where((e) => e.weight != null).toList();
+    if (list.isEmpty) return (avg7: null, prevAvg7: null, ratePerWeek: null, points: 0);
+    final last = list.last.date;
+    double? avg(int fromDaysAgo, int toDaysAgo) {
+      final v = [
+        for (final e in list)
+          if (daysBetween(e.date, last) >= toDaysAgo && daysBetween(e.date, last) <= fromDaysAgo) e.weight!
+      ];
+      return v.isEmpty ? null : v.reduce((a, b) => a + b) / v.length;
+    }
+
+    final recent = [for (final e in list) if (daysBetween(e.date, last) <= 21) e];
+    double? rate;
+    if (recent.length >= 3 && daysBetween(recent.first.date, last) >= 7) {
+      final xs = [for (final e in recent) daysBetween(recent.first.date, e.date).toDouble()];
+      final ys = [for (final e in recent) e.weight!];
+      final mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
+      var sxy = 0.0, sxx = 0.0;
+      for (var i = 0; i < xs.length; i++) {
+        sxy += (xs[i] - mx) * (ys[i] - my);
+        sxx += (xs[i] - mx) * (xs[i] - mx);
+      }
+      if (sxx > 0) rate = sxy / sxx * 7;
+    }
+    return (avg7: avg(6, 0), prevAvg7: avg(13, 7), ratePerWeek: rate, points: recent.length);
+  }
+
+  // ======================================================================
   // onboarding and gym setup
   // ======================================================================
 
@@ -662,7 +878,7 @@ class AppStore extends ChangeNotifier {
             final x = e.log[i];
             if (x.isEmpty) continue;
             final t = i < e.plan.length ? e.plan[i] : null;
-            final target = t == null ? null : e.targetKg(t, profile.maxes);
+            final target = t == null ? null : e.targetKg(t, _maxesIn(p, w));
             final result = x.status == 1 ? 'good' : (x.status == 2 ? 'missed' : '');
             b.writeln([
               p.name, p.level, w.week, w.date, w.title, e.name, e.lift ?? '', i + 1, t?.label ?? '',

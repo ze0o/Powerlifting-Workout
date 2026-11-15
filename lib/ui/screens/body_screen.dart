@@ -132,6 +132,8 @@ class _BodyScreenState extends State<BodyScreen> {
           ),
         ),
         const SizedBox(height: 12),
+        _trendPanel(context, store, p),
+        const SizedBox(height: 12),
         _classPanel(context, store, p),
         const SizedBox(height: 12),
         Panel(
@@ -207,6 +209,64 @@ class _BodyScreenState extends State<BodyScreen> {
   Color? _deltaColor(Palette p, Metric m, double? d) {
     if (d == null || d.abs() < 0.05 || m.better == 0) return p.muted;
     return (d > 0) == (m.better > 0) ? p.ok : p.warn;
+  }
+
+  Widget _trendPanel(BuildContext context, AppStore store, Palette p) {
+    final t = store.bodyTrend();
+    final hi = store.profile.bwTarget[1], lo = store.profile.bwTarget[0];
+    String? note;
+    Color noteColor = p.muted;
+    final avg = t.avg7, rate = t.ratePerWeek;
+    if (avg != null && rate != null) {
+      final pctWeek = rate / avg * 100;
+      if (pctWeek < -1.0) {
+        note = 'You are losing ${fmt1(-pctWeek)}% of bodyweight a week. Faster than 1% a week usually costs strength; '
+            'eat a little more.';
+        noteColor = p.warn;
+      } else if (avg > hi && rate < -0.05) {
+        note = 'About ${((avg - hi) / -rate).ceil()} weeks to reach your meet range at this rate.';
+        noteColor = p.blue;
+      } else if (avg > hi) {
+        note = 'Your weight is flat or rising and you are above your meet range.';
+        noteColor = p.warn;
+      } else if (avg >= lo) {
+        note = 'Inside your meet range. Hold here.';
+        noteColor = p.ok;
+      }
+    } else if (t.points < 3) {
+      note = 'Weigh in at least 3 times over a week or more to see your rate.';
+    }
+    final change = (avg != null && t.prevAvg7 != null) ? avg - t.prevAvg7! : null;
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WEIGHT TREND', style: eyebrowStyle(context)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: StatTile(
+                label: '7-day average',
+                value: avg == null ? '—' : fmt1(avg),
+                unit: avg == null ? '' : 'kg',
+                delta: change == null ? null : '${change > 0 ? '+' : '−'}${fmt1(change.abs())} vs previous 7 days',
+              ),
+            ),
+            Expanded(
+              child: StatTile(
+                label: 'Rate',
+                value: rate == null ? '—' : '${rate > 0 ? '+' : '−'}${fmt1(rate.abs())}',
+                unit: rate == null ? '' : 'kg / week',
+              ),
+            ),
+          ]),
+          if (note != null) ...[
+            const SizedBox(height: 10),
+            Text(note, style: TextStyle(color: noteColor, fontWeight: FontWeight.w600, fontSize: 13)),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _classPanel(BuildContext context, AppStore store, Palette p) {

@@ -218,6 +218,8 @@ class Workout {
   bool completed;
   double? bodyweight;
   String notes;
+  Readiness? readiness;
+  double loadScale; // 1.0 = as planned, 0.95 = 5% lighter today
 
   Workout({
     required this.id,
@@ -232,6 +234,8 @@ class Workout {
     this.completed = false,
     this.bodyweight,
     this.notes = '',
+    this.readiness,
+    this.loadScale = 1.0,
   }) : exercises = exercises ?? [];
 
   bool get isLive => startedAt != null && !completed;
@@ -273,6 +277,8 @@ class Workout {
         if (completed) 'done': true,
         if (bodyweight != null) 'bw': bodyweight,
         if (notes.isNotEmpty) 'notes': notes,
+        if (readiness != null) 'ready': readiness!.toJson(),
+        if (loadScale != 1.0) 'scale': loadScale,
       };
 
   factory Workout.fromJson(Map<dynamic, dynamic> j) => Workout(
@@ -288,6 +294,80 @@ class Workout {
         completed: j['done'] == true,
         bodyweight: jd(j['bw']),
         notes: js(j['notes']),
+        readiness: j['ready'] is Map ? Readiness.fromJson(jm(j['ready'])) : null,
+        loadScale: jd(j['scale']) ?? 1.0,
+      );
+}
+
+/// How ready the lifter felt before a workout. Energy, soreness and stress are 1–5.
+class Readiness {
+  double sleepHours;
+  int energy; // 1 = drained, 5 = great
+  int soreness; // 1 = none, 5 = very sore
+  int stress; // 1 = calm, 5 = very stressed
+
+  Readiness({this.sleepHours = 7, this.energy = 3, this.soreness = 2, this.stress = 2});
+
+  /// 0–100. Sleep counts most, then energy, soreness and stress.
+  int get score {
+    double c(double v) => v.clamp(0.0, 1.0).toDouble();
+    final s = c((sleepHours - 4) / 4);
+    final e = c((energy - 1) / 4);
+    final so = c((5 - soreness) / 4);
+    final st = c((5 - stress) / 4);
+    return (100 * (0.35 * s + 0.30 * e + 0.20 * so + 0.15 * st)).round();
+  }
+
+  /// Suggested load for today's main lifts.
+  double get suggestedScale => score < 35 ? 0.90 : (score < 50 ? 0.95 : 1.0);
+
+  String get advice {
+    final v = score;
+    if (v >= 70) return 'Good to go. Train as planned.';
+    if (v >= 50) return 'Moderate. Keep the main lift as planned and drop a back-off set if bar speed slows.';
+    if (v >= 35) return 'Low. Take the main lifts about 5% lighter today and keep the technique sharp.';
+    return 'Very low. Go about 10% lighter, or make today a technique session.';
+  }
+
+  Map<String, dynamic> toJson() =>
+      {'sleep': sleepHours, 'energy': energy, 'soreness': soreness, 'stress': stress, 'score': score};
+
+  factory Readiness.fromJson(Map<dynamic, dynamic> j) => Readiness(
+        sleepHours: jd(j['sleep']) ?? 7,
+        energy: ji(j['energy']) ?? 3,
+        soreness: ji(j['soreness']) ?? 2,
+        stress: ji(j['stress']) ?? 2,
+      );
+}
+
+/// A change to a competition max for the rest of a program, from RPE feedback.
+class Adjustment {
+  String id;
+  String lift;
+  int fromWeek;
+  double kg;
+  String reason;
+  String sourceWorkoutId;
+
+  Adjustment({
+    required this.id,
+    required this.lift,
+    required this.fromWeek,
+    required this.kg,
+    required this.reason,
+    required this.sourceWorkoutId,
+  });
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'lift': lift, 'from': fromWeek, 'kg': kg, 'reason': reason, 'src': sourceWorkoutId};
+
+  factory Adjustment.fromJson(Map<dynamic, dynamic> j) => Adjustment(
+        id: js(j['id']),
+        lift: js(j['lift']),
+        fromWeek: ji(j['from']) ?? 1,
+        kg: jd(j['kg']) ?? 0,
+        reason: js(j['reason']),
+        sourceWorkoutId: js(j['src']),
       );
 }
 
@@ -300,6 +380,7 @@ class Program {
   List<String> weekLabels;
   String start; // ISO date of day 1
   List<Workout> workouts;
+  List<Adjustment> adjustments;
 
   Program({
     required this.id,
@@ -310,8 +391,10 @@ class Program {
     required this.start,
     List<String>? weekLabels,
     List<Workout>? workouts,
+    List<Adjustment>? adjustments,
   })  : weekLabels = weekLabels ?? [],
-        workouts = workouts ?? [];
+        workouts = workouts ?? [],
+        adjustments = adjustments ?? [];
 
   String weekLabel(int w) => (w - 1 < weekLabels.length) ? weekLabels[w - 1] : '';
 
@@ -324,6 +407,7 @@ class Program {
         'labels': weekLabels,
         'start': start,
         'workouts': [for (final w in workouts) w.toJson()],
+        if (adjustments.isNotEmpty) 'adj': [for (final a in adjustments) a.toJson()],
       };
 
   factory Program.fromJson(Map<dynamic, dynamic> j) => Program(
@@ -335,6 +419,7 @@ class Program {
         start: js(j['start']),
         weekLabels: [for (final s in jl(j['labels'])) js(s)],
         workouts: [for (final w in jl(j['workouts'])) Workout.fromJson(jm(w))],
+        adjustments: [for (final a in jl(j['adj'])) Adjustment.fromJson(jm(a))],
       );
 }
 

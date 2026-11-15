@@ -180,6 +180,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   Text('Bodyweight is also saved to the Body tab for this date.',
                       style: TextStyle(fontSize: 11.5, color: p.muted)),
                   const SizedBox(height: 12),
+                  if (w.readiness != null || w.loadScale != 1.0) ...[
+                    _readinessRow(context, store, p, w),
+                    const SizedBox(height: 10),
+                  ],
                   _lifecycle(context, store, p, w),
                 ],
               ),
@@ -224,6 +228,74 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
+  Widget _readinessRow(BuildContext context, AppStore store, Palette p, Workout w) {
+    final r = w.readiness;
+    final score = r?.score;
+    final color = score == null ? p.muted : (score >= 70 ? p.ok : (score >= 50 ? p.blue : p.warn));
+    final pct = ((1 - w.loadScale) * 100).round();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+      decoration: BoxDecoration(border: Border.all(color: p.line), borderRadius: BorderRadius.circular(8)),
+      child: Row(children: [
+        if (score != null) ...[
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 3)),
+            child: Text('$score', style: TextStyle(fontWeight: FontWeight.w900, color: color)),
+          ),
+          const SizedBox(width: 10),
+        ],
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(score == null ? 'TODAY\'S LOAD' : 'READINESS', style: eyebrowStyle(context)),
+            Text(pct == 0 ? 'Main lifts as planned' : 'Main lifts $pct% lighter today',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ]),
+        ),
+        TextButton(
+          onPressed: () async {
+            final pick = await showDialog<double>(
+              context: context,
+              builder: (ctx) => SimpleDialog(
+                title: const Text("Today's main-lift loads"),
+                children: [
+                  for (final (v, label) in const [(1.0, 'As planned'), (0.95, '5% lighter'), (0.90, '10% lighter')])
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(ctx, v),
+                      child: Text(label, style: TextStyle(fontWeight: v == w.loadScale ? FontWeight.w800 : FontWeight.w400)),
+                    ),
+                ],
+              ),
+            );
+            if (pick != null) store.setLoadScale(w.id, pick);
+          },
+          child: const Text('Change'),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _start(Workout w) async {
+    final store = StoreScope.read(context);
+    final res = await showReadinessSheet(context);
+    if (!mounted) return;
+    store.startWorkout(w.id, readiness: res?.readiness, loadScale: res?.scale);
+  }
+
+  Future<void> _finish(Workout w) async {
+    final store = StoreScope.read(context);
+    store.finishWorkout(w.id);
+    final list = store.suggestAdjustments(w);
+    if (list.isEmpty || !mounted) return;
+    final chosen = await showAdjustmentDialog(context, list);
+    if (chosen.isNotEmpty) {
+      store.applyAdjustments(chosen);
+      if (mounted) toast(context, 'Targets updated from week ${w.week + 1}.');
+    }
+  }
+
   Widget _lifecycle(BuildContext context, AppStore store, Palette p, Workout w) {
     if (w.completed) {
       return Row(
@@ -248,7 +320,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             style: FilledButton.styleFrom(backgroundColor: p.red, foregroundColor: Colors.white),
             icon: const Icon(Icons.flag, size: 18),
             label: const Text('Finish workout'),
-            onPressed: () => store.finishWorkout(w.id),
+            onPressed: () => _finish(w),
           ),
         ],
       );
@@ -260,9 +332,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         FilledButton.icon(
           icon: const Icon(Icons.play_arrow, size: 18),
           label: const Text('Start workout'),
-          onPressed: () => store.startWorkout(w.id),
+          onPressed: () => _start(w),
         ),
-        OutlinedButton(onPressed: () => store.finishWorkout(w.id), child: const Text('Mark as done')),
+        OutlinedButton(onPressed: () => _finish(w), child: const Text('Mark as done')),
       ],
     );
   }
@@ -317,7 +389,7 @@ class ExerciseLogBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final p = Palette.of(context);
-    final maxes = store.profile.maxes;
+    final maxes = store.maxesFor(workout);
     final s = slot;
     final n = math.max(s.plan.length, s.log.length);
     final weights = <double>[];
@@ -669,4 +741,154 @@ class _RestBarState extends State<RestBar> {
           child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
         ),
       );
+}
+
+// ======================================================================
+// readiness check and RPE adjustments
+// ======================================================================
+
+typedef ReadinessResult = ({Readiness readiness, double scale});
+
+/// Asks how the lifter feels before training. Returns null when skipped.
+Future<ReadinessResult?> showReadinessSheet(BuildContext context) => showModalBottomSheet<ReadinessResult>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const _ReadinessSheet(),
+    );
+
+class _ReadinessSheet extends StatefulWidget {
+  const _ReadinessSheet();
+
+  @override
+  State<_ReadinessSheet> createState() => _ReadinessSheetState();
+}
+
+class _ReadinessSheetState extends State<_ReadinessSheet> {
+  final r = Readiness();
+  bool useSuggestion = true;
+
+  Widget _scale(String label, String low, String high, int value, void Function(int) set) {
+    final p = Palette.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label.toUpperCase(), style: eyebrowStyle(context)),
+      const SizedBox(height: 6),
+      SegmentedButton<int>(
+        showSelectedIcon: false,
+        segments: [for (var i = 1; i <= 5; i++) ButtonSegment(value: i, label: Text('$i'))],
+        selected: {value},
+        onSelectionChanged: (s) => setState(() => set(s.first)),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Row(children: [
+          Text(low, style: TextStyle(fontSize: 11.5, color: p.muted)),
+          const Spacer(),
+          Text(high, style: TextStyle(fontSize: 11.5, color: p.muted)),
+        ]),
+      ),
+      const SizedBox(height: 12),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final score = r.score;
+    final scale = r.suggestedScale;
+    final color = score >= 70 ? p.ok : (score >= 50 ? p.blue : p.warn);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('READINESS CHECK', style: headingStyle(context, size: 20)),
+          const SizedBox(height: 2),
+          Text('Ten seconds before you train. It helps pick today\'s loads and builds your history.',
+              style: TextStyle(color: p.muted, fontSize: 12.5)),
+          const SizedBox(height: 14),
+          Text('SLEEP LAST NIGHT: ${fmt(r.sleepHours)} H', style: eyebrowStyle(context)),
+          Slider(
+            value: r.sleepHours,
+            min: 3,
+            max: 10,
+            divisions: 14,
+            label: '${fmt(r.sleepHours)} h',
+            onChanged: (v) => setState(() => r.sleepHours = v),
+          ),
+          _scale('Energy', 'Drained', 'Great', r.energy, (v) => r.energy = v),
+          _scale('Soreness', 'None', 'Very sore', r.soreness, (v) => r.soreness = v),
+          _scale('Stress', 'Calm', 'Very stressed', r.stress, (v) => r.stress = v),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: p.sunk, borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              Text('$score', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: color)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(r.advice, style: const TextStyle(fontSize: 13.5))),
+            ]),
+          ),
+          if (scale < 1.0)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: useSuggestion,
+              onChanged: (v) => setState(() => useSuggestion = v),
+              title: Text('Make main lifts ${((1 - scale) * 100).round()}% lighter today'),
+            ),
+          const SizedBox(height: 10),
+          Row(children: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Skip')),
+            const Spacer(),
+            FilledButton.icon(
+              icon: const Icon(Icons.play_arrow, size: 18),
+              label: const Text('Start workout'),
+              onPressed: () => Navigator.pop<ReadinessResult>(
+                context,
+                (readiness: r, scale: scale < 1.0 && useSuggestion ? scale : 1.0),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lists RPE-based changes and returns the ones the lifter accepts.
+Future<List<Adjustment>> showAdjustmentDialog(BuildContext context, List<Adjustment> list) async {
+  final keep = {for (final a in list) a.id: true};
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setS) => AlertDialog(
+        title: const Text('Adjust your next weeks?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Based on how hard your heaviest sets felt today:'),
+            const SizedBox(height: 8),
+            for (final a in list)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: keep[a.id],
+                onChanged: (v) => setS(() => keep[a.id] = v ?? false),
+                title: Text('${kLiftNames[a.lift]} ${a.kg > 0 ? '+' : '−'}${fmt(a.kg.abs())} kg from week ${a.fromWeek}',
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text(a.reason),
+              ),
+            const SizedBox(height: 4),
+            Text('You can undo these on the Program tab.', style: TextStyle(color: Palette.of(ctx).muted, fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep the plan')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Apply')),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return [];
+  return [for (final a in list) if (keep[a.id] == true) a];
 }
