@@ -1,6 +1,7 @@
 -- Meet Prep Log · sync function
 -- Run this once in the Supabase dashboard: SQL Editor → New query → paste → Run.
--- (0001 and 0002 are already applied to the meet-prep-log project.)
+-- (0001, 0002 and 0004 are already applied to the meet-prep-log project. If you ran an older copy
+-- of this file, run this one again: it replaces the function.)
 --
 -- The app sends its whole JSON (the same format as "Copy backup").
 -- This stores the snapshot and rebuilds the lifter's rows for analysis, in one transaction.
@@ -61,15 +62,17 @@ begin
   delete from public.body_entries where user_id = uid;
 
   for p in select value from jsonb_array_elements(coalesce(payload -> 'programs', '[]'::jsonb)) loop
-    insert into public.programs (user_id, id, template_id, name, level, weeks, start_date, is_active)
+    insert into public.programs (user_id, id, template_id, name, level, weeks, start_date, is_active, adjustments)
     values (uid, p ->> 'id', p ->> 'template', p ->> 'name', p ->> 'level',
       (public.try_numeric(p ->> 'weeks'))::int,
       case when p ->> 'start' ~ '^\d{4}-\d{2}-\d{2}$' then (p ->> 'start')::date end,
-      (p ->> 'id') = (payload ->> 'active'))
+      (p ->> 'id') = (payload ->> 'active'),
+      coalesce(p -> 'adj', '[]'::jsonb))
     on conflict do nothing;
 
     for w in select value from jsonb_array_elements(coalesce(p -> 'workouts', '[]'::jsonb)) loop
-      insert into public.workouts (user_id, program_id, id, week, title, workout_date, duration_min, completed, bodyweight_kg, notes)
+      insert into public.workouts (user_id, program_id, id, week, title, workout_date, duration_min, completed, bodyweight_kg, notes,
+        readiness_score, sleep_hours, energy, soreness, stress, load_scale)
       values (uid, p ->> 'id', w ->> 'id',
         (public.try_numeric(w ->> 'week'))::int,
         w ->> 'title',
@@ -77,7 +80,13 @@ begin
         (public.try_numeric(w ->> 'dur'))::int,
         coalesce((w ->> 'done')::boolean, false),
         public.try_numeric(w ->> 'bw'),
-        coalesce(w ->> 'notes', ''))
+        coalesce(w ->> 'notes', ''),
+        (public.try_numeric(w -> 'ready' ->> 'score'))::int,
+        public.try_numeric(w -> 'ready' ->> 'sleep'),
+        (public.try_numeric(w -> 'ready' ->> 'energy'))::int,
+        (public.try_numeric(w -> 'ready' ->> 'soreness'))::int,
+        (public.try_numeric(w -> 'ready' ->> 'stress'))::int,
+        coalesce(public.try_numeric(w ->> 'scale'), 1))
       on conflict do nothing;
 
       for e in select value from jsonb_array_elements(coalesce(w -> 'ex', '[]'::jsonb)) loop

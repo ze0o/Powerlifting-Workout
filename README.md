@@ -1,6 +1,21 @@
-# Meet Prep Log v2.2
+# Meet Prep Log v2.3
 
 A powerlifting training log for Android, built with Flutter. It includes programs for beginner, intermediate and advanced lifters, plus a blank builder. Every workout can be edited. You log sets with RPE and referee lights, and the app tracks estimated maxes, your total with IPF GL points, and body composition.
+
+## What's new in v2.3: smart coaching
+
+- **RPE auto-regulation.** When you finish a workout, the app compares your heaviest planned set (the top single, if there is one) with the RPE you logged:
+  - 1.5 or more below target: +2 steps
+  - 0.75 below target: +1 step
+  - 1 or more above target: −1 step
+  - missed: −2 steps
+
+  A step is 5 kg for squat and deadlift, 2.5 kg for bench. You choose which changes to apply, and they affect the rest of the program from the next week. They show as chips on the Program tab, where you can undo them.
+- **Update-max prompt.** When your estimated max beats your entered max by 2.5 kg or more, the Progress tab offers to update it.
+- **Readiness check.** Before each workout you rate sleep, energy, soreness and stress, and get a score from 0 to 100 with advice. Below 50 it suggests main lifts 5% lighter that day, below 35 it suggests 10% lighter. You can change today's load from the workout screen at any time.
+- **Week load** (Progress tab): hard sets by area this week against last week. Warnings appear when your competition lifts average RPE 8.8 or more, when hard sets jump more than 30%, when you miss 2 or more competition-lift sets, or when readiness averages below 50.
+- **Weight trend** (Body tab): 7-day average, change from the week before, and rate in kg per week, with a warning above 1% of bodyweight a week and an estimate of the weeks left to reach your meet range.
+- **Database:** workouts now store the readiness answers and today's load, and programs store the RPE adjustments (`0004_…`, already applied). `v_workout_summary` adds readiness and average main-lift RPE, and the analysis script uses both as features.
 
 ## What's new in v2.2: accounts and cloud database
 

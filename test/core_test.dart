@@ -2,6 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meet_prep_log/core/calc.dart';
 import 'package:meet_prep_log/core/models.dart';
+import 'package:meet_prep_log/core/store.dart';
 import 'package:meet_prep_log/core/templates.dart';
 
 Map<String, double> get maxes => {'squat': 150, 'bench': 130, 'deadlift': 200};
@@ -116,6 +117,57 @@ void main() {
       expect(e.bodyFatPct, closeTo(20, 0.01));
       expect(e.leanMass, closeTo(83.2, 0.01));
       expect(e.bmi(185), closeTo(30.4, 0.1));
+    });
+  });
+
+  group('smart coaching', () {
+    test('readiness score and suggested load', () {
+      expect(Readiness(sleepHours: 8, energy: 5, soreness: 1, stress: 1).score, 100);
+      final tired = Readiness(sleepHours: 5, energy: 2, soreness: 4, stress: 4);
+      expect(tired.score, lessThan(35));
+      expect(tired.suggestedScale, 0.90);
+    });
+
+    test('an easy top single raises next week\'s squat by 5 kg', () {
+      final store = AppStore();
+      final p = templateById('meet-prep-8').build('2026-11-10', 8);
+      store.programs.add(p);
+      store.activeId = p.id;
+      final w5 = find(p, 'w5-thu');
+      w5.exercises.first.log = [LoggedSet(w: '135', r: '1', rpe: '7')];
+      final list = store.suggestAdjustments(w5);
+      expect(list.length, 1);
+      expect(list.first.lift, 'squat');
+      expect(list.first.kg, 5);
+      expect(list.first.fromWeek, 6);
+      store.applyAdjustments(list);
+      final w6 = find(p, 'w6-thu');
+      final squat = w6.exercises.first;
+      expect(squat.targetKg(squat.plan.first, store.maxesFor(w6)), 142.5);
+      // The same workout doesn't suggest twice.
+      expect(store.suggestAdjustments(w5), isEmpty);
+    });
+
+    test('a missed top single lowers the lift', () {
+      final store = AppStore();
+      final p = templateById('meet-prep-8').build('2026-11-10', 8);
+      store.programs.add(p);
+      store.activeId = p.id;
+      final w5 = find(p, 'w5-tue');
+      w5.exercises.first.log = [LoggedSet(w: '117.5', r: '0', status: 2)];
+      final list = store.suggestAdjustments(w5);
+      expect(list.single.kg, -5);
+    });
+
+    test('readiness load scale lowers % targets for that workout only', () {
+      final store = AppStore();
+      final p = templateById('meet-prep-8').build('2026-11-10', 8);
+      store.programs.add(p);
+      store.activeId = p.id;
+      final w1 = find(p, 'w1-thu');
+      w1.loadScale = 0.95;
+      final squat = w1.exercises.first;
+      expect(squat.targetKg(squat.plan.first, store.maxesFor(w1)), 107.5);
     });
   });
 }

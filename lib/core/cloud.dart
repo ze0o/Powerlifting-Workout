@@ -9,7 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'store.dart';
 
-const kAppVersion = '2.2.0';
+const kAppVersion = '2.3.0';
 
 /// The project URL and the public (anon) key. Both are safe to ship in the app:
 /// row level security on the server limits every lifter to their own rows.

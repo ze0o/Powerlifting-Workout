@@ -39,6 +39,17 @@ weekly = pd.read_sql(
     engine,
     parse_dates=["week_start"],
 )
+ready = pd.read_sql(
+    """
+    select user_id, date_trunc('week', workout_date)::date as week_start,
+           avg(readiness_score) as readiness, avg(avg_main_rpe) as main_rpe
+    from public.v_workout_summary
+    where workout_date is not null
+    group by user_id, date_trunc('week', workout_date)
+    """,
+    engine,
+    parse_dates=["week_start"],
+)
 body = pd.read_sql(
     "select user_id, entry_date, weight_kg, pbf, smm_kg from public.body_entries where weight_kg is not null",
     engine,
@@ -55,13 +66,17 @@ body["week_start"] = body.entry_date.dt.to_period("W-SUN").dt.start_time
 bw = body.groupby(["user_id", "week_start"], as_index=False).agg(
     bodyweight=("weight_kg", "mean"), pbf=("pbf", "mean"), smm=("smm_kg", "mean")
 )
-df = weekly.merge(bw, on=["user_id", "week_start"], how="left").sort_values(["user_id", "lift", "week_start"])
+df = (weekly.merge(bw, on=["user_id", "week_start"], how="left")
+        .merge(ready, on=["user_id", "week_start"], how="left")
+        .sort_values(["user_id", "lift", "week_start"]))
 g = df.groupby(["user_id", "lift"], group_keys=False)
 df[["bodyweight", "pbf", "smm"]] = g[["bodyweight", "pbf", "smm"]].ffill()
 df["weeks_in"] = g.cumcount()
 df["e1rm_change_4w"] = df.best_e1rm - g.best_e1rm.shift(4)
 df["volume_4w"] = g.volume_kg.transform(lambda s: s.rolling(4, min_periods=1).sum())
 df["sets_4w"] = g.sets.transform(lambda s: s.rolling(4, min_periods=1).sum())
+df["readiness_4w"] = g.readiness.transform(lambda s: s.rolling(4, min_periods=1).mean())
+df["main_rpe_4w"] = g.main_rpe.transform(lambda s: s.rolling(4, min_periods=1).mean())
 df["female"] = (df.sex == "female").astype(int)
 df["equipped"] = (df.division == "equipped").astype(int)
 df["lift_code"] = df.lift.map({"squat": 0, "bench": 1, "deadlift": 2})
@@ -72,7 +87,7 @@ future["week_start"] = future.week_start - pd.Timedelta(weeks=HORIZON_WEEKS)
 df = df.merge(future.rename(columns={"best_e1rm": "target"}), on=["user_id", "lift", "week_start"], how="left")
 
 FEATURES = ["best_e1rm", "weeks_in", "e1rm_change_4w", "volume_4w", "sets_4w",
-            "bodyweight", "pbf", "smm", "female", "equipped", "lift_code"]
+            "bodyweight", "pbf", "smm", "readiness_4w", "main_rpe_4w", "female", "equipped", "lift_code"]
 
 train = df.dropna(subset=["target"]).copy()
 train[FEATURES] = train[FEATURES].fillna(train[FEATURES].median(numeric_only=True))
