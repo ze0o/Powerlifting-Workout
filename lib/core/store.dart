@@ -25,6 +25,25 @@ class AppStore extends ChangeNotifier {
   static const _v1Key = 'meet_prep_log_v1';
   static const defaultStart = '2026-11-10';
 
+  /// A read-only copy of another lifter's data (a coach viewing an athlete).
+  /// Nothing is saved, and screens hide their editing controls.
+  final bool readOnly;
+
+  /// For a read-only store: the account the data belongs to.
+  final String? ownerId;
+
+  AppStore({this.readOnly = false, this.ownerId});
+
+  /// Builds a read-only store from a cloud snapshot.
+  factory AppStore.viewer(Map<dynamic, dynamic> json, {String? ownerId}) {
+    final s = AppStore(readOnly: true, ownerId: ownerId);
+    s._fromJson(json);
+    if (s.active == null && s.programs.isNotEmpty) s.activeId = s.programs.last.id;
+    s._pickWeek();
+    s.loaded = true;
+    return s;
+  }
+
   Profile profile = Profile.defaults();
   final List<Program> programs = [];
   String? activeId;
@@ -188,11 +207,13 @@ class AppStore extends ChangeNotifier {
   }
 
   void _save() {
+    if (readOnly) return;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 500), flush);
   }
 
   Future<void> flush() async {
+    if (readOnly) return;
     _saveTimer?.cancel();
     _saveTimer = null;
     await _prefs?.setString(_key, jsonEncode(toJson()));
@@ -288,6 +309,34 @@ class AppStore extends ChangeNotifier {
     if (name.trim().isNotEmpty) p.name = name.trim();
     programs.add(p);
     activeId = p.id;
+    _pickWeek();
+    _touch(bump: true);
+  }
+
+  /// A copy of [src] with the plan only: no logs, readiness, durations or RPE
+  /// adjustments, moved to start on [start]. Used when a coach sends a program.
+  static Program planOnly(Program src, String start) {
+    final shift = src.start.isEmpty ? 0 : daysBetween(src.start, start);
+    return Program(
+      id: uid('p'),
+      templateId: src.templateId,
+      name: src.name,
+      level: src.level,
+      weeks: src.weeks,
+      start: start,
+      weekLabels: [...src.weekLabels],
+      workouts: [
+        for (final w in src.workouts) w.copyPlan(id: w.id, week: w.week, date: w.date.isEmpty ? w.date : addDays(w.date, shift)),
+      ],
+    );
+  }
+
+  /// Adds a program a coach sent. Percent targets use this lifter's own maxes.
+  void addAssignedProgram(Map<String, dynamic> json, {bool makeActive = true}) {
+    final p = Program.fromJson(json);
+    final clean = planOnly(p, p.start.isEmpty ? todayIso() : p.start);
+    programs.add(clean);
+    if (makeActive || active == null) activeId = clean.id;
     _pickWeek();
     _touch(bump: true);
   }

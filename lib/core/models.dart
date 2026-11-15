@@ -775,3 +775,114 @@ class Percentiles {
         js(j['source']),
       );
 }
+
+// ---------- coach mode (rows from the cloud) ----------
+
+/// A link between a coach and an athlete (v_coach_links).
+class CoachLink {
+  final String id;
+  final String coachId;
+  final String athleteId;
+  final String coachName;
+  final String athleteName;
+  final String athleteSex;
+  final String athleteDivision;
+  final String athleteClass;
+  final DateTime? athleteSyncedAt;
+  final DateTime? since;
+
+  CoachLink({
+    required this.id,
+    required this.coachId,
+    required this.athleteId,
+    this.coachName = '',
+    this.athleteName = '',
+    this.athleteSex = 'male',
+    this.athleteDivision = 'classic',
+    this.athleteClass = '',
+    this.athleteSyncedAt,
+    this.since,
+  });
+
+  factory CoachLink.fromJson(Map<dynamic, dynamic> j) => CoachLink(
+        id: js(j['id']),
+        coachId: js(j['coach_id']),
+        athleteId: js(j['athlete_id']),
+        coachName: js(j['coach_name']),
+        athleteName: js(j['athlete_name']),
+        athleteSex: js(j['athlete_sex']).isEmpty ? 'male' : js(j['athlete_sex']),
+        athleteDivision: js(j['athlete_division']).isEmpty ? 'classic' : js(j['athlete_division']),
+        athleteClass: js(j['athlete_class']),
+        athleteSyncedAt: DateTime.tryParse(js(j['athlete_synced_at']))?.toLocal(),
+        since: DateTime.tryParse(js(j['created_at']))?.toLocal(),
+      );
+}
+
+/// A comment on one of an athlete's workouts, by the athlete or their coach.
+class CoachComment {
+  final String id;
+  final String athleteId;
+  final String authorId;
+  final String programId;
+  final String workoutId;
+  final String body;
+  final DateTime createdAt;
+  final DateTime? readAt;
+
+  CoachComment({
+    required this.id,
+    required this.athleteId,
+    required this.authorId,
+    required this.programId,
+    required this.workoutId,
+    required this.body,
+    required this.createdAt,
+    this.readAt,
+  });
+
+  factory CoachComment.fromJson(Map<dynamic, dynamic> j) => CoachComment(
+        id: js(j['id']),
+        athleteId: js(j['athlete_id']),
+        authorId: js(j['author_id']),
+        programId: js(j['program_id']),
+        workoutId: js(j['workout_id']),
+        body: js(j['body']),
+        createdAt: DateTime.tryParse(js(j['created_at']))?.toLocal() ?? DateTime.now(),
+        readAt: DateTime.tryParse(js(j['read_at']))?.toLocal(),
+      );
+}
+
+/// A program a coach sent to an athlete. status: 'sent', 'accepted' or 'declined'.
+class ProgramAssignment {
+  final String id;
+  final String coachId;
+  final String athleteId;
+  final Map<String, dynamic> program;
+  final String note;
+  final String status;
+  final DateTime? createdAt;
+
+  ProgramAssignment({
+    required this.id,
+    required this.coachId,
+    required this.athleteId,
+    required this.program,
+    this.note = '',
+    this.status = 'sent',
+    this.createdAt,
+  });
+
+  String get programName => js(program['name']);
+  int get weeks => ji(program['weeks']) ?? 0;
+  String get start => js(program['start']);
+
+  factory ProgramAssignment.fromJson(Map<dynamic, dynamic> j) => ProgramAssignment(
+        id: js(j['id']),
+        coachId: js(j['coach_id']),
+        athleteId: js(j['athlete_id']),
+        program: Map<String, dynamic>.from(jm(j['program'])),
+        note: js(j['note']),
+        status: js(j['status']).isEmpty ? 'sent' : js(j['status']),
+        createdAt: DateTime.tryParse(js(j['created_at']))?.toLocal(),
+      );
+}

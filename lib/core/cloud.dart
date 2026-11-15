@@ -10,7 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models.dart';
 import 'store.dart';
 
-const kAppVersion = '2.5.0';
+const kAppVersion = '2.6.0';
 
 /// The project URL and the public (anon) key. Both are safe to ship in the app:
 /// row level security on the server limits every lifter to their own rows.
@@ -42,7 +42,14 @@ class CloudSync extends ChangeNotifier {
     try {
       await Supabase.initialize(url: CloudConfig.url, anonKey: CloudConfig.anonKey);
       ready = true;
-      _sub = _db.auth.onAuthStateChange.listen((_) => notifyListeners());
+      _sub = _db.auth.onAuthStateChange.listen((e) {
+        if (e.event == AuthChangeEvent.signedIn || e.event == AuthChangeEvent.initialSession) {
+          unawaited(refreshCoach());
+        } else if (e.event == AuthChangeEvent.signedOut) {
+          _clearCoach();
+        }
+        notifyListeners();
+      });
       store.addListener(_onStoreChanged);
       unawaited(refreshStanding());
     } catch (e) {
@@ -127,6 +134,7 @@ class CloudSync extends ChangeNotifier {
     _debounce?.cancel();
     if (ready) await _db.auth.signOut();
     lastSynced = null;
+    _clearCoach();
     notifyListeners();
   }
 
@@ -180,6 +188,267 @@ class CloudSync extends ChangeNotifier {
       return null;
     } catch (_) {
       return 'Could not reach the server. Check your internet connection.';
+    }
+  }
+
+  // ======================================================================
+  // coach mode
+  // ======================================================================
+
+  /// This account coaches (shows the Coach tab).
+  bool isCoach = false;
+  String? coachCode;
+
+  /// Links where this account is the coach.
+  List<CoachLink> athletes = [];
+
+  /// Links where this account is the athlete.
+  List<CoachLink> coaches = [];
+
+  /// Programs coaches sent to this account that are waiting for an answer.
+  List<ProgramAssignment> inbox = [];
+
+  /// Programs this account sent as a coach (any status).
+  List<ProgramAssignment> sent = [];
+
+  /// Comments written by someone else that this account hasn't opened yet.
+  List<CoachComment> unread = [];
+
+  bool coachLoading = false;
+
+  String? get myId => user?.id;
+
+  void _clearCoach() {
+    isCoach = false;
+    coachCode = null;
+    athletes = [];
+    coaches = [];
+    inbox = [];
+    sent = [];
+    unread = [];
+  }
+
+  /// Unread comments on one workout (or on any of one athlete's workouts).
+  int unreadFor({String? athleteId, String? programId, String? workoutId}) => unread
+      .where((c) =>
+          (athleteId == null || c.athleteId == athleteId) &&
+          (programId == null || c.programId == programId) &&
+          (workoutId == null || c.workoutId == workoutId))
+      .length;
+
+  /// Unread comments from coaches on this account's own workouts.
+  int get unreadFromCoach => myId == null ? 0 : unreadFor(athleteId: myId);
+
+  /// Reloads coach status, links, programs waiting for an answer and unread comments.
+  Future<void> refreshCoach() async {
+    final me = myId;
+    if (me == null) {
+      _clearCoach();
+      notifyListeners();
+      return;
+    }
+    coachLoading = true;
+    notifyListeners();
+    try {
+      final prof = await _db.from('profiles').select('is_coach, coach_code').eq('id', me).maybeSingle();
+      isCoach = prof?['is_coach'] == true;
+      coachCode = prof?['coach_code'] as String?;
+      final links = [for (final r in await _db.from('v_coach_links').select()) CoachLink.fromJson(r)];
+      athletes = links.where((l) => l.coachId == me).toList()
+        ..sort((a, b) => a.athleteName.toLowerCase().compareTo(b.athleteName.toLowerCase()));
+      coaches = links.where((l) => l.athleteId == me).toList();
+      final asg = [
+        for (final r in await _db.from('program_assignments').select().order('created_at', ascending: false))
+          ProgramAssignment.fromJson(r)
+      ];
+      inbox = asg.where((a) => a.athleteId == me && a.status == 'sent').toList();
+      sent = asg.where((a) => a.coachId == me).toList();
+      unread = [
+        for (final r in await _db.from('coach_comments').select().isFilter('read_at', null).neq('author_id', me))
+          CoachComment.fromJson(r)
+      ];
+    } catch (_) {
+      // Keep what we had; the coach tables may not be set up yet.
+    } finally {
+      coachLoading = false;
+      notifyListeners();
+    }
+  }
+
+  String _err(Object e) {
+    if (e is PostgrestException) {
+      if (e.code == 'PGRST202' || e.code == '42P01') {
+        return 'Coach mode is not set up on the server yet. Run supabase/migrations/0006_coach_mode.sql in the Supabase SQL editor.';
+      }
+      return e.message;
+    }
+    return 'Could not reach the server. Check your internet connection.';
+  }
+
+  /// Turns on coaching. Returns null on success, or a message.
+  Future<String?> enableCoaching() async {
+    if (!signedIn) return 'Sign in first.';
+    try {
+      coachCode = '${await _db.rpc('enable_coaching')}';
+      isCoach = true;
+      notifyListeners();
+      unawaited(push());
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// Hides the Coach tab. Athletes stay linked; turning coaching back on keeps the same code.
+  Future<String?> disableCoaching() async {
+    if (!signedIn) return 'Sign in first.';
+    try {
+      await _db.from('profiles').update({'is_coach': false}).eq('id', myId!);
+      isCoach = false;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// Links this athlete to the coach with this code. Returns null on success, or a message.
+  Future<String?> connectCoach(String code) async {
+    if (!signedIn) return 'Sign in first.';
+    final c = code.trim().toUpperCase();
+    if (c.length != 6) return 'A coach code has 6 letters and numbers.';
+    try {
+      await _db.rpc('connect_coach', params: {'code': c});
+      // Make sure the coach sees up-to-date data straight away.
+      await push();
+      await refreshCoach();
+      return null;
+    } on PostgrestException catch (e) {
+      if (e.code == 'P0002') return 'No coach has that code. Check it with your coach.';
+      if (e.code == '22023') return 'That is your own coach code.';
+      return _err(e);
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// Removes a link (either side can). Returns null on success, or a message.
+  Future<String?> removeLink(String linkId) async {
+    try {
+      await _db.from('coach_links').delete().eq('id', linkId);
+      await refreshCoach();
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// The athlete's latest synced data, for a coach.
+  Future<CloudBackup?> athleteSnapshot(String athleteId) async {
+    final row = await _db.from('app_snapshots').select('data, synced_at').eq('user_id', athleteId).maybeSingle();
+    if (row == null || row['data'] is! Map) return null;
+    return (
+      data: Map<String, dynamic>.from(row['data'] as Map),
+      syncedAt: DateTime.tryParse('${row['synced_at']}')?.toLocal(),
+    );
+  }
+
+  /// Comments on one workout, oldest first.
+  Future<List<CoachComment>> comments(String athleteId, String programId, String workoutId) async {
+    final rows = await _db
+        .from('coach_comments')
+        .select()
+        .eq('athlete_id', athleteId)
+        .eq('program_id', programId)
+        .eq('workout_id', workoutId)
+        .order('created_at', ascending: true);
+    return [for (final r in rows) CoachComment.fromJson(r)];
+  }
+
+  Future<String?> addComment(String athleteId, String programId, String workoutId, String body) async {
+    final text = body.trim();
+    if (text.isEmpty) return 'Write something first.';
+    try {
+      await _db.from('coach_comments').insert({
+        'athlete_id': athleteId,
+        'author_id': myId,
+        'program_id': programId,
+        'workout_id': workoutId,
+        'body': text,
+      });
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  Future<String?> deleteComment(String id) async {
+    try {
+      await _db.from('coach_comments').delete().eq('id', id);
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// Marks other people's comments on this workout as read.
+  Future<void> markRead(String athleteId, String programId, String workoutId) async {
+    final me = myId;
+    if (me == null || unreadFor(athleteId: athleteId, programId: programId, workoutId: workoutId) == 0) return;
+    try {
+      await _db
+          .from('coach_comments')
+          .update({'read_at': DateTime.now().toUtc().toIso8601String()})
+          .eq('athlete_id', athleteId)
+          .eq('program_id', programId)
+          .eq('workout_id', workoutId)
+          .neq('author_id', me)
+          .isFilter('read_at', null);
+      unread.removeWhere((c) => c.athleteId == athleteId && c.programId == programId && c.workoutId == workoutId);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Sends a program (plan only) to a linked athlete.
+  Future<String?> sendProgram(String athleteId, Program program, String note) async {
+    try {
+      await _db.from('program_assignments').insert({
+        'coach_id': myId,
+        'athlete_id': athleteId,
+        'program': program.toJson(),
+        'note': note.trim(),
+      });
+      await refreshCoach();
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// Takes back a program the athlete hasn't answered yet.
+  Future<String?> withdrawProgram(String assignmentId) async {
+    try {
+      await _db.from('program_assignments').delete().eq('id', assignmentId);
+      await refreshCoach();
+      return null;
+    } catch (e) {
+      return _err(e);
+    }
+  }
+
+  /// Accepts (adds the program on this phone) or declines a program from a coach.
+  Future<String?> answerProgram(ProgramAssignment a, {required bool accept, bool makeActive = true}) async {
+    try {
+      await _db.from('program_assignments').update({
+        'status': accept ? 'accepted' : 'declined',
+        'responded_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', a.id);
+      if (accept) store.addAssignedProgram(a.program, makeActive: makeActive);
+      inbox.removeWhere((x) => x.id == a.id);
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return _err(e);
     }
   }
 

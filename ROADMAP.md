@@ -60,7 +60,7 @@
 - [x] **Accounts and cloud sync** with Supabase: email sign-in, automatic sync, restore on a new phone, analysis tables and views (v2.2).
 - [ ] **Progress prediction in the app:** show the 4-week e1RM forecast from `analysis/progress_model.py` once there are enough lifters.
 - [x] **GL standing** against OpenIPF results by sex, division and class (v2.4). Run `analysis/build_standing.py` to load the data.
-- [ ] **Coach mode:** a coach builds programs, assigns them to athletes, and reads their logs and check-ins. This is how TrainHeroic and TrueCoach make money.
+- [x] **Coach mode:** a coach builds programs, sends them to athletes, reads their logs, readiness and body data, and comments on workouts (v2.6). *Still to do: coach-only program drafts, group messages, and per-athlete pricing.*
 - [ ] **Video:** attach a set video, frame-by-frame review, bar path, maybe bar speed (VBT).
 - [ ] **iOS build** (same Flutter code; needs a Mac and an Apple developer account).
 - [ ] **Watch app** (Wear OS first) for logging sets and the rest timer.
@@ -72,7 +72,8 @@
 - **Coach plan:** per-athlete pricing.
 
 ## Before a public release
-- Rename the app (Meet Prep Log is fine for personal use) and design an original icon. Don't use federation logos or names in the branding.
-- Privacy policy (body data is health data). Play Store listing with screenshots.
+- Rename the app (Meet Prep Log is fine for personal use). The icon is done (competition plate, v2.5). Don't use federation logos or names in the branding.
+- Change the Android package from `com.example.meet_prep_log` to your own (for example `com.abdulaziz.meetpreplog`); the Play Store rejects `com.example`.
+- Privacy policy (body data is health data, and coaches can see an athlete's data). Play Store listing with screenshots.
 - Crash reporting (Sentry or Firebase Crashlytics) and a small beta group from your gym.
 - Widget tests for the main flows (log a set, add an exercise, restore a backup).

@@ -219,4 +219,90 @@ void main() {
       expect(store.alignment(m).deltaDays, 0);
     });
   });
+
+  group('coach mode', () {
+    test('a sent program keeps the plan and drops logs, moved to the new start', () {
+      final src = templateById('meet-prep-8').build('2026-11-10', 8);
+      final w = src.workouts.first;
+      w.completed = true;
+      w.durationMin = 70;
+      w.notes = 'felt good';
+      w.readiness = Readiness(sleepHours: 8);
+      w.exercises.first.log = [LoggedSet(w: '140', r: '3', rpe: '8', status: 1)];
+      src.adjustments.add(Adjustment(id: 'a', lift: 'squat', fromWeek: 3, kg: 5, reason: 'r', sourceWorkoutId: w.id));
+
+      final sent = AppStore.planOnly(src, '2026-11-17');
+      expect(sent.id, isNot(src.id));
+      expect(sent.start, '2026-11-17');
+      expect(sent.workouts.length, src.workouts.length);
+      expect(sent.adjustments, isEmpty);
+      final c = sent.workouts.first;
+      expect(c.date, addDays(w.date, 7));
+      expect(c.completed, isFalse);
+      expect(c.durationMin, isNull);
+      expect(c.notes, '');
+      expect(c.readiness, isNull);
+      expect(c.exercises.first.log, isEmpty);
+      expect(c.exercises.first.plan.length, w.exercises.first.plan.length);
+      expect(c.exercises.first.pctOf, w.exercises.first.pctOf);
+    });
+
+    test('the athlete adds a sent program and it uses their maxes', () {
+      final coach = templateById('meet-prep-8').build('2026-11-10', 8);
+      final json = AppStore.planOnly(coach, '2026-12-07').toJson();
+      final athlete = AppStore(readOnly: true); // read-only so the test never touches storage
+      athlete.profile.maxes['squat'] = 200;
+      athlete.addAssignedProgram(json);
+      expect(athlete.programs.length, 1);
+      expect(athlete.active!.start, '2026-12-07');
+      final w = athlete.active!.workouts.firstWhere((x) => x.exercises.any((e) => e.pctOf == 'squat'));
+      final slot = w.exercises.firstWhere((e) => e.pctOf == 'squat');
+      final set = slot.plan.firstWhere((s) => s.pct != null);
+      expect(slot.targetKg(set, athlete.maxesFor(w)), r25(200 * set.pct!));
+    });
+
+    test('a viewer store is read-only and loads a snapshot', () {
+      final owner = AppStore(readOnly: true);
+      owner.addAssignedProgram(templateById('foundation-8').build('2026-11-10', 8).toJson());
+      final v = AppStore.viewer(owner.toJson(), ownerId: 'u1');
+      expect(v.readOnly, isTrue);
+      expect(v.ownerId, 'u1');
+      expect(v.loaded, isTrue);
+      expect(v.active, isNotNull);
+    });
+
+    test('cloud rows parse', () {
+      final l = CoachLink.fromJson({
+        'id': 'l1',
+        'coach_id': 'c',
+        'athlete_id': 'a',
+        'athlete_name': 'Ali',
+        'athlete_class': '105',
+        'athlete_synced_at': '2026-11-15T10:00:00Z',
+      });
+      expect(l.athleteName, 'Ali');
+      expect(l.athleteSex, 'male');
+      expect(l.athleteSyncedAt, isNotNull);
+      final a = ProgramAssignment.fromJson({
+        'id': 'x',
+        'coach_id': 'c',
+        'athlete_id': 'a',
+        'program': {'name': 'Peak', 'weeks': 10, 'start': '2026-12-07'},
+        'status': 'sent',
+      });
+      expect(a.programName, 'Peak');
+      expect(a.weeks, 10);
+      final c = CoachComment.fromJson({
+        'id': 'k',
+        'athlete_id': 'a',
+        'author_id': 'c',
+        'program_id': 'p',
+        'workout_id': 'w1-mon',
+        'body': 'Great depth',
+        'created_at': '2026-11-15T10:00:00Z',
+      });
+      expect(c.readAt, isNull);
+      expect(c.body, 'Great depth');
+    });
+  });
 }

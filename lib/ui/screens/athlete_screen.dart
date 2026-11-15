@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import '../../core/cloud.dart';
 import 'account_screen.dart';
+import 'coach_screen.dart';
 import 'program_picker.dart';
 import 'tools_screen.dart';
 import '../../l10n/l10n.dart';
@@ -124,6 +125,8 @@ class _AthleteScreenState extends State<AthleteScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _account(context, p),
+                const SizedBox(height: 12),
+                const CoachPanel(),
                 const SizedBox(height: 12),
                 _language(context, store),
                 const SizedBox(height: 12),

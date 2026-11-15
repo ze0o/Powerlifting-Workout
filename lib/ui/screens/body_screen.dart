@@ -53,20 +53,24 @@ class _BodyScreenState extends State<BodyScreen> {
     final entries = store.bodySorted;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: p.red,
-        foregroundColor: Colors.white,
-        onPressed: () => _open(context),
-        icon: const Icon(Icons.add),
-        label: const T('Add entry'),
-      ),
+      floatingActionButton: store.readOnly
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: p.red,
+              foregroundColor: Colors.white,
+              onPressed: () => _open(context),
+              icon: const Icon(Icons.add),
+              label: const T('Add entry'),
+            ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 96),
         children: [
           const ScreenHeader(eyebrow: 'BODY COMPOSITION', title: 'BODY'),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: entries.isEmpty ? _empty(context) : _content(context, store, p, entries, h),
+            child: entries.isEmpty
+                ? (store.readOnly ? const Panel(child: T('No body entries yet.')) : _empty(context))
+                : _content(context, store, p, entries, h),
           ),
         ],
       ),
@@ -167,7 +171,7 @@ class _BodyScreenState extends State<BodyScreen> {
               const SizedBox(height: 4),
               for (final e in entries.reversed)
                 InkWell(
-                  onTap: () => _open(context, e),
+                  onTap: store.readOnly ? null : () => _open(context, e),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Row(children: [

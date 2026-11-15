@@ -11,6 +11,8 @@ import '../../core/models.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../../core/cloud.dart';
+import 'coach_screen.dart';
 import 'exercise_editor.dart';
 import '../../l10n/l10n.dart';
 
@@ -59,6 +61,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       return Scaffold(appBar: AppBar(), body: const Center(child: T('This workout was deleted.')));
     }
     final prog = store.active!;
+    final cloud = CloudScope.of(context);
     final st = store.stats(w);
     final dur = store.durationOf(w);
     final k = '${w.id}-${store.revision}';
@@ -223,6 +226,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               ),
               onChanged: (v) => store.setWorkoutNotes(w.id, v),
             ),
+            if (cloud.signedIn &&
+                cloud.myId != null &&
+                (cloud.coaches.isNotEmpty || cloud.unreadFor(athleteId: cloud.myId, programId: prog.id, workoutId: w.id) > 0)) ...[
+              const SizedBox(height: 14),
+              CommentThread(athleteId: cloud.myId!, programId: prog.id, workoutId: w.id),
+            ],
           ],
         ),
       ),

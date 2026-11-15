@@ -178,7 +178,7 @@ class LiftCard extends StatelessWidget {
               ]), style: const TextStyle(fontFeatures: kTabular)),
             ],
           ),
-          if (top != null && r25(top) >= m + 2.5) ...[
+          if (!store.readOnly && top != null && r25(top) >= m + 2.5) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/calc.dart';
+import '../../core/cloud.dart';
 import '../../core/models.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'program_picker.dart';
+import 'coach_screen.dart';
 import 'workout_screen.dart';
 import '../../l10n/l10n.dart';
 
@@ -77,7 +79,7 @@ class ProgramScreen extends StatelessWidget {
                       size: 16, color: a.kg > 0 ? p.ok : p.warn),
                   label: Text('${kLiftNames[a.lift]} ${a.kg > 0 ? '+' : '−'}${fmt(a.kg.abs())} kg from W${a.fromWeek}'),
                   tooltip: a.reason,
-                  onDeleted: () async {
+                  onDeleted: store.readOnly ? null : () async {
                     final ok = await confirmDialog(context,
                         title: 'Undo this change?',
                         body: '${a.reason}. Targets from week ${a.fromWeek} go back to your max.',
@@ -246,13 +248,19 @@ class WorkoutCard extends StatelessWidget {
     final bw = w.bodyweight ?? store.body[w.date]?.weight;
     final lifts = w.exercises.where((e) => e.lift != null).take(3).toList();
     final done = status == 'done';
+    final cloud = CloudScope.of(context);
+    final owner = store.readOnly ? store.ownerId : cloud.myId;
+    final unread = owner == null ? 0 : cloud.unreadFor(athleteId: owner, programId: store.activeId, workoutId: w.id);
 
     return Material(
       color: p.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: p.line)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkoutScreen(workoutId: w.id))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => store.readOnly
+                ? StoreScope(store: store, child: CoachWorkoutScreen(workoutId: w.id))
+                : WorkoutScreen(workoutId: w.id))),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -285,6 +293,14 @@ class WorkoutCard extends StatelessWidget {
                           Expanded(
                             child: Text(tr(context, w.title), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                           ),
+                          if (unread > 0) ...[
+                            const SizedBox(width: 6),
+                            Badge(
+                              label: Text('$unread'),
+                              backgroundColor: p.red,
+                              child: Icon(Icons.chat_bubble_outline, size: 18, color: p.muted),
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           StatusChip(status),
                         ],
