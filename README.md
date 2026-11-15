@@ -1,6 +1,28 @@
-# Meet Prep Log v2.3
+# Meet Prep Log v2.4
 
 A powerlifting training log for Android, built with Flutter. It includes programs for beginner, intermediate and advanced lifters, plus a blank builder. Every workout can be edited. You log sets with RPE and referee lights, and the app tracks estimated maxes, your total with IPF GL points, and body composition.
+
+## What's new in v2.4: competition
+
+A new **Meet** tab:
+- **Plan a meet:** name, place, date and weigh-in type (2-hour like IPF, or 24-hour). It shows a countdown, and you can keep several meets.
+- **Peak timing:** checks whether your program's meet day lands on the meet date. **Line up my program** moves the workouts you haven't logged by the difference; logged workouts keep their dates.
+- **Attempts:** suggested from your projected max (best e1RM in the last 28 days, otherwise your max plus RPE adjustments) at about 91%, 96.5% and 101%. Every attempt can be edited. Shows opener and planned totals, GL and DOTS at your meet bodyweight, and where that ranks.
+- **Weigh-in:** your 7-day average against the class limit, with advice that fits a 2-hour or a 24-hour weigh-in.
+- **Meet bag:** a checklist of 15 items. Check your federation's approved equipment list.
+- **Meet day:** enter your weigh-in bodyweight, then each attempt with three referee lights (white = good lift, red = no lift, two whites count). It shows your best lift, running total, GL and DOTS, and warns you if a lift has no good attempt. After each decision a 60-second timer reminds you to hand in your next attempt. Each lift shows a warm-up ramp to your opener.
+
+**DOTS** now appears next to GL in the calculator and on meet day.
+
+**Where you stand:** the GL calculator and the Meet tab rank your GL and total against real lifters of your sex, division and IPF class. The numbers come from OpenIPF (IPF-affiliated meets, public domain data from OpenPowerlifting). To load them:
+
+```bash
+pip install pandas numpy sqlalchemy "psycopg[binary]" requests
+export DATABASE_URL="postgresql+psycopg://..."   # Supabase dashboard → Connect → Session pooler
+python analysis/build_standing.py               # last 3 years; add --years 5 for more
+```
+
+The script uploads percentile tables to `competition_percentiles` (migration 0005, already applied). Every user can read them, and only you can write them. The app downloads them at launch and keeps a copy for offline use. Re-run the script every few months.
 
 ## What's new in v2.3: smart coaching
 
@@ -108,6 +130,8 @@ Requires Flutter 3.22 or newer (Dart 3.4+).
 | `lib/core/cloud.dart` | Supabase sign-in, sync and restore |
 | `supabase/migrations/` | Database schema, analysis views and the sync function |
 | `analysis/progress_model.py` | Starter analysis and 4-week e1RM prediction |
+| `analysis/build_standing.py` | Builds the competition percentile tables from OpenIPF |
+| `lib/ui/screens/meet_screen.dart` | Meet tab and meet-day mode |
 | `lib/ui/theme.dart` | Palette (light/dark) and theme |
 | `lib/ui/widgets.dart` | Header, lift tag, plate loading, referee light, stat tile, chart, dialogs |
 | `lib/ui/screens/` | Program, Workout (with rest timer and warm-ups), Exercise editor, Progress, Body, Athlete, Program picker, Tools, Onboarding |

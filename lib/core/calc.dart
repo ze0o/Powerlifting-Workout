@@ -160,3 +160,30 @@ double? glPoints(double total, double bodyweight, {bool female = false, bool equ
   final bw = math.max(bodyweight, 40.0);
   return total * 100 / (c[0] - c[1] * math.exp(-c[2] * bw));
 }
+
+/// DOTS points: total × 500 / (a + b·bw + c·bw² + d·bw³ + e·bw⁴).
+/// Bodyweight is held at 40–210 kg (men) or 40–150 kg (women).
+double? dotsPoints(double total, double bodyweight, {bool female = false}) {
+  if (total <= 0 || bodyweight <= 0) return null;
+  final c = female
+      ? [-57.96288, 13.6175032, -0.1126655495, 0.0005158568, -0.0000010706]
+      : [-307.75076, 24.0900756, -0.1918759221, 0.0007391293, -0.000001093];
+  final x = bodyweight.clamp(40.0, female ? 150.0 : 210.0).toDouble();
+  final den = c[0] + c[1] * x + c[2] * x * x + c[3] * x * x * x + c[4] * x * x * x * x;
+  return total * 500 / den;
+}
+
+/// Where a value sits in a sorted list of 99 percentile cut points (p1..p99).
+/// Returns the share of lifters below it, 0–100.
+double percentileOf(double value, List<double> cuts) {
+  if (cuts.isEmpty) return 0;
+  var i = 0;
+  while (i < cuts.length && value >= cuts[i]) {
+    i++;
+  }
+  if (i == 0) return value <= 0 ? 0 : (value / cuts.first).clamp(0.0, 1.0).toDouble();
+  if (i >= cuts.length) return 99.5;
+  final lo = cuts[i - 1], hi = cuts[i];
+  final frac = hi > lo ? (value - lo) / (hi - lo) : 0.0;
+  return i + frac; // between p_i and p_(i+1)
+}

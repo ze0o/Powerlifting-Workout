@@ -170,4 +170,53 @@ void main() {
       expect(squat.targetKg(squat.plan.first, store.maxesFor(w1)), 107.5);
     });
   });
+
+  group('competition', () {
+    test('DOTS matches the published formula', () {
+      // 480 kg total at 105 kg bodyweight, men.
+      expect(dotsPoints(480, 105), closeTo(289.5, 0.3));
+      expect(dotsPoints(0, 105), isNull);
+    });
+
+    test('percentile lookup', () {
+      final cuts = [for (var i = 1; i <= 99; i++) i.toDouble()];
+      expect(percentileOf(50, cuts), closeTo(50, 1e-9));
+      expect(percentileOf(50.5, cuts), closeTo(50.5, 1e-9));
+      expect(percentileOf(200, cuts), 99.5);
+    });
+
+    test('attempts from the entered max when there are no recent logs', () {
+      final store = AppStore();
+      final p = templateById('meet-prep-8').build('2026-11-10', 8);
+      store.programs.add(p);
+      store.activeId = p.id;
+      final a = store.suggestAttempts('squat');
+      expect(a.attempts, [137.5, 145, 152.5]);
+    });
+
+    test('meet total needs a good lift in all three', () {
+      final m = Meet(id: 'm', name: 'Test', date: '2027-01-30');
+      m.attempts['squat']![0] = Attempt(kg: '140', lights: [1, 1, 2]);
+      m.attempts['bench']![0] = Attempt(kg: '120', lights: [1, 1, 1]);
+      m.attempts['bench']![1] = Attempt(kg: '127.5', lights: [2, 2, 1]);
+      expect(m.best('bench'), 120);
+      expect(m.total, isNull);
+      m.attempts['deadlift']![0] = Attempt(kg: '190', lights: [1, 2, 1]);
+      expect(m.total, 450);
+      final back = Meet.fromJson(m.toJson());
+      expect(back.total, 450);
+    });
+
+    test('lining up moves the program meet day to the meet date', () {
+      final store = AppStore();
+      final p = templateById('meet-prep-8').build('2026-11-10', 8);
+      store.programs.add(p);
+      store.activeId = p.id;
+      final m = Meet(id: 'm', name: 'Test', date: '2027-01-16');
+      expect(store.programMeetDay(p)!.id, 'w8-sat');
+      store.alignProgramToMeet(m);
+      expect(store.programMeetDay(p)!.date, '2027-01-16');
+      expect(store.alignment(m).deltaDays, 0);
+    });
+  });
 }

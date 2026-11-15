@@ -640,7 +640,19 @@ class RestBar extends StatefulWidget {
   final int total;
   final void Function(int seconds) onAdjust;
   final VoidCallback onClose;
-  const RestBar({super.key, required this.end, required this.total, required this.onAdjust, required this.onClose});
+  final String title;
+  final String doneTitle;
+  final String doneText;
+  const RestBar({
+    super.key,
+    required this.end,
+    required this.total,
+    required this.onAdjust,
+    required this.onClose,
+    this.title = 'REST',
+    this.doneTitle = 'REST DONE',
+    this.doneText = 'Next set',
+  });
 
   @override
   State<RestBar> createState() => _RestBarState();
@@ -707,8 +719,8 @@ class _RestBarState extends State<RestBar> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(done ? 'REST DONE' : 'REST', style: eyebrowStyle(context, color: Colors.white70)),
-                      Text(done ? 'Next set' : fmtClock(left),
+                      Text(done ? widget.doneTitle : widget.title, style: eyebrowStyle(context, color: Colors.white70)),
+                      Text(done ? widget.doneText : fmtClock(left),
                           style: const TextStyle(
                               fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white, fontFeatures: kTabular)),
                     ],
