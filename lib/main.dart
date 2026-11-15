@@ -5,6 +5,7 @@ import 'core/cloud.dart';
 import 'core/store.dart';
 import 'ui/screens/athlete_screen.dart';
 import 'ui/screens/body_screen.dart';
+import 'ui/screens/meet_screen.dart';
 import 'ui/screens/onboarding_screen.dart';
 import 'ui/screens/program_screen.dart';
 import 'ui/screens/progress_screen.dart';
@@ -87,7 +88,7 @@ class _HomeShellState extends State<HomeShell> {
     if (store.needsOnboarding) {
       return const AnnotatedRegion<SystemUiOverlayStyle>(value: SystemUiOverlayStyle.light, child: OnboardingScreen());
     }
-    const screens = [ProgramScreen(), ProgressScreen(), BodyScreen(), AthleteScreen()];
+    const screens = [ProgramScreen(), ProgressScreen(), MeetScreen(), BodyScreen(), AthleteScreen()];
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -102,6 +103,7 @@ class _HomeShellState extends State<HomeShell> {
             NavigationDestination(
                 icon: Icon(Icons.calendar_view_week_outlined), selectedIcon: Icon(Icons.calendar_view_week), label: 'Program'),
             NavigationDestination(icon: Icon(Icons.show_chart), label: 'Progress'),
+            NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Meet'),
             NavigationDestination(
                 icon: Icon(Icons.monitor_weight_outlined), selectedIcon: Icon(Icons.monitor_weight), label: 'Body'),
             NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Athlete'),

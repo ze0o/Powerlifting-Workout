@@ -49,16 +49,17 @@
 - [x] **Bodyweight trend:** 7-day average, kg per week, weeks to your meet range (v2.3).
 
 ### Phase 3: competition features (what makes it *the* powerlifting app)
-- [ ] **Meet planner:** enter the meet date, and the program aligns its peak and taper to it.
-- [ ] **Attempt selector:** suggests 1st/2nd/3rd from recent top singles. On meet day, record attempts with white and red lights per referee (3 lights), and show the live total and GL.
-- [ ] **Federation rules:** IPF classes and GL now. Add USAPL, WRPF and other classes, plus DOTS and Wilks.
-- [ ] **Weigh-in plan:** water and food timeline for a 2-hour vs 24-hour weigh-in.
-- [ ] **Equipment checklist:** IPF-approved belt, sleeves, wraps, singlet, socks, ID.
+- [x] **Meet planner:** meet date, countdown, and lining up the program's peak with it (v2.4).
+- [x] **Attempt selector and meet-day mode** with 3 referee lights, live total, GL, DOTS and an attempt timer (v2.4).
+- [x] **DOTS** added (v2.4).
+- [ ] **More federations:** USAPL, WRPF and other classes, plus Wilks.
+- [x] **Weigh-in plan** for 2-hour and 24-hour weigh-ins (v2.4).
+- [x] **Meet bag checklist** (v2.4).
 
 ### Phase 4: growth
 - [x] **Accounts and cloud sync** with Supabase: email sign-in, automatic sync, restore on a new phone, analysis tables and views (v2.2).
 - [ ] **Progress prediction in the app:** show the 4-week e1RM forecast from `analysis/progress_model.py` once there are enough lifters.
-- [ ] **GL standing:** compare a lifter's GL and total with real competition results in their class (OpenPowerlifting data).
+- [x] **GL standing** against OpenIPF results by sex, division and class (v2.4). Run `analysis/build_standing.py` to load the data.
 - [ ] **Coach mode:** a coach builds programs, assigns them to athletes, and reads their logs and check-ins. This is how TrainHeroic and TrueCoach make money.
 - [ ] **Video:** attach a set video, frame-by-frame review, bar path, maybe bar speed (VBT).
 - [ ] **iOS build** (same Flutter code; needs a Mac and an Apple developer account).

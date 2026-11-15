@@ -15,6 +15,9 @@ typedef WorkoutStats = ({int done, int planned, double volume});
 typedef MetricValue = ({double value, String date, double? delta});
 typedef PersonalRecord = ({double kg, String date, String reps});
 typedef BodyTrend = ({double? avg7, double? prevAvg7, double? ratePerWeek, int points});
+typedef AttemptPlan = ({double projected, String basis, List<double> attempts});
+typedef MeetAlignment = ({String? programMeetDate, int deltaDays, bool anyLogged});
+typedef Standing = ({double pct, int n, String label});
 typedef WeekLoad = ({Map<String, int> sets, Map<String, int> prevSets, List<String> warnings});
 
 class AppStore extends ChangeNotifier {
@@ -29,6 +32,11 @@ class AppStore extends ChangeNotifier {
   final List<ExerciseDef> customExercises = [];
   final Map<String, CheckIn> checkins = {}; // "<programId>-<week>"
   GymPrefs gym = GymPrefs();
+  final List<Meet> meets = [];
+
+  /// Percentile tables from real competition results (cached separately from backups).
+  final List<Percentiles> standing = [];
+  String standingSource = '';
 
   /// True on a fresh install until the lifter finishes the welcome flow.
   bool needsOnboarding = false;
@@ -73,6 +81,7 @@ class AppStore extends ChangeNotifier {
       }
     }
     needsOnboarding = fresh;
+    _loadStanding();
     if (programs.isEmpty && !fresh) {
       final p = templateById('meet-prep-8').build(defaultStart, 8);
       programs.add(p);
@@ -93,6 +102,7 @@ class AppStore extends ChangeNotifier {
     customExercises.clear();
     checkins.clear();
     gym = GymPrefs();
+    meets.clear();
   }
 
   Map<String, dynamic> toJson() => {
@@ -104,6 +114,7 @@ class AppStore extends ChangeNotifier {
         'customExercises': [for (final d in customExercises) d.toJson()],
         'checkins': {for (final e in checkins.entries) e.key: e.value.toJson()},
         'gym': gym.toJson(),
+        'meets': [for (final m in meets) m.toJson()],
       };
 
   void _fromJson(Map<dynamic, dynamic> j) {
@@ -122,6 +133,9 @@ class AppStore extends ChangeNotifier {
     }
     jm(j['checkins']).forEach((k, v) => checkins['$k'] = CheckIn.fromJson(jm(v)));
     gym = GymPrefs.fromJson(jm(j['gym']));
+    for (final m in jl(j['meets'])) {
+      meets.add(Meet.fromJson(jm(m)));
+    }
   }
 
   /// Version 1 stored settings, logs keyed "w1-tue", bodyweight and check-ins.
@@ -801,6 +815,190 @@ class AppStore extends ChangeNotifier {
       if (sxx > 0) rate = sxy / sxx * 7;
     }
     return (avg7: avg(6, 0), prevAvg7: avg(13, 7), ratePerWeek: rate, points: recent.length);
+  }
+
+  // ======================================================================
+  // competition: meets, attempts, alignment, standing
+  // ======================================================================
+
+  /// The next meet that hasn't happened yet, or else the most recent one.
+  Meet? get currentMeet {
+    if (meets.isEmpty) return null;
+    final sorted = [...meets]..sort((a, b) => a.date.compareTo(b.date));
+    final today = todayIso();
+    for (final m in sorted) {
+      if (m.date.compareTo(today) >= 0) return m;
+    }
+    return sorted.last;
+  }
+
+  int? daysToMeet(Meet m) => daysBetween(todayIso(), m.date);
+
+  Meet addMeet(String name, String date, String weighIn) {
+    final m = Meet(id: uid('meet'), name: name, date: date, weighIn: weighIn);
+    meets.add(m);
+    _touch(bump: true);
+    return m;
+  }
+
+  void updateMeet(Meet m, void Function(Meet m) change, {bool bump = false}) {
+    change(m);
+    _touch(bump: bump);
+  }
+
+  void deleteMeet(String id) {
+    meets.removeWhere((m) => m.id == id);
+    _touch(bump: true);
+  }
+
+  /// Projected max for a lift: best e1RM from the last 28 days of logs,
+  /// else the entered max plus any RPE adjustments.
+  ({double kg, String basis}) projectedMax(String lift) {
+    final today = todayIso();
+    double? best;
+    String? when;
+    for (final p in programs) {
+      for (final w in p.workouts) {
+        if (daysBetween(w.date, today) > 28 || w.date.compareTo(today) > 0) continue;
+        for (final e in w.exercises) {
+          if (e.lift != lift) continue;
+          for (final x in e.log) {
+            if (x.status == 2) continue;
+            final v = estimatedMax(x.w, x.r, x.rpe);
+            if (v != null && (best == null || v > best)) {
+              best = v;
+              when = '${x.w.trim()} × ${x.r.trim()}${x.rpe.trim().isEmpty ? '' : ' @ RPE ${x.rpe.trim()}'} on ${shortDate(w.date)}';
+            }
+          }
+        }
+      }
+    }
+    final p = active;
+    final entered = (profile.maxes[lift] ?? 0) + (p == null ? 0.0 : adjustmentFor(lift, p.weeks));
+    if (best != null && best >= entered - 5) return (kg: best, basis: 'Estimated from $when');
+    return (kg: entered, basis: 'Your max${p != null && adjustmentFor(lift, p.weeks) != 0 ? ' with RPE adjustments' : ''}');
+  }
+
+  /// Suggested attempts: about 91%, 96.5% and 101% of the projected max.
+  AttemptPlan suggestAttempts(String lift) {
+    final pm = projectedMax(lift);
+    final a = [r25(pm.kg * 0.91), r25(pm.kg * 0.965), r25(pm.kg * 1.01)];
+    if (a[1] <= a[0]) a[1] = a[0] + 2.5;
+    if (a[2] <= a[1]) a[2] = a[1] + 2.5;
+    return (projected: pm.kg, basis: pm.basis, attempts: a);
+  }
+
+  void fillSuggestedAttempts(Meet m) {
+    for (final l in kLifts) {
+      final s = suggestAttempts(l).attempts;
+      final list = m.attempts[l]!;
+      for (var i = 0; i < 3; i++) {
+        if (list[i].lights.every((x) => x == 0)) list[i].kg = fmt(s[i]);
+      }
+    }
+    _touch(bump: true);
+  }
+
+  /// The program's meet-day workout (last workout with attempts, else the last workout).
+  Workout? programMeetDay(Program p) {
+    final list = [...p.workouts]..sort((a, b) => a.date.compareTo(b.date));
+    if (list.isEmpty) return null;
+    for (final w in list.reversed) {
+      if (w.exercises.any((e) => e.plan.any((t) => t.label.contains('attempt')))) return w;
+    }
+    return list.last;
+  }
+
+  MeetAlignment alignment(Meet m) {
+    final p = active;
+    final day = p == null ? null : programMeetDay(p);
+    if (p == null || day == null) return (programMeetDate: null, deltaDays: 0, anyLogged: false);
+    return (
+      programMeetDate: day.date,
+      deltaDays: daysBetween(day.date, m.date),
+      anyLogged: p.workouts.any((w) => w.hasLog),
+    );
+  }
+
+  /// Moves the program so its meet day lands on the meet date. Workouts you
+  /// already logged keep their dates.
+  void alignProgramToMeet(Meet m) {
+    final p = active;
+    if (p == null) return;
+    final a = alignment(m);
+    if (a.deltaDays == 0) return;
+    if (!a.anyLogged) p.start = addDays(p.start, a.deltaDays);
+    for (final w in p.workouts) {
+      if (!w.hasLog) w.date = addDays(w.date, a.deltaDays);
+    }
+    _pickWeek();
+    _touch(bump: true);
+  }
+
+  void setAttemptKg(Meet m, String lift, int i, String kg) {
+    m.attempts[lift]![i].kg = kg;
+    _touch();
+  }
+
+  void cycleLight(Meet m, String lift, int i, int judge) {
+    final l = m.attempts[lift]![i].lights;
+    l[judge] = (l[judge] + 1) % 3;
+    _touch();
+  }
+
+  void setAllLights(Meet m, String lift, int i, int value) {
+    m.attempts[lift]![i].lights = [value, value, value];
+    _touch();
+  }
+
+  void toggleChecklist(Meet m, String item) {
+    if (!m.checklist.remove(item)) m.checklist.add(item);
+    _touch();
+  }
+
+  // ---------- standing from competition data ----------
+
+  static const _standingKey = 'competition_percentiles_v1';
+
+  void _loadStanding() {
+    final raw = _prefs?.getString(_standingKey);
+    if (raw == null) return;
+    try {
+      final j = jsonDecode(raw) as Map;
+      standing
+        ..clear()
+        ..addAll([for (final r in jl(j['rows'])) Percentiles.fromJson(jm(r))]);
+      standingSource = js(j['source']);
+    } catch (_) {
+      standing.clear();
+    }
+  }
+
+  void setStanding(List<Percentiles> rows) {
+    if (rows.isEmpty) return;
+    standing
+      ..clear()
+      ..addAll(rows);
+    standingSource = rows.first.source;
+    _prefs?.setString(_standingKey, jsonEncode({'source': standingSource, 'rows': [for (final r in rows) r.toJson()]}));
+    notifyListeners();
+  }
+
+  /// Where a value ranks among real lifters of the same sex and division,
+  /// in a weight class (or all classes). Null when there is no data yet.
+  Standing? standingFor(String metric, double value, {String? weightClass}) {
+    final eq = profile.equipped ? 'equipped' : 'classic';
+    final cls = weightClass ?? 'all';
+    for (final r in standing) {
+      if (r.sex == profile.sex && r.equipment == eq && r.weightClass == cls && r.metric == metric && r.cuts.length >= 50) {
+        final pct = percentileOf(value, r.cuts);
+        final label = cls == 'all'
+            ? 'all ${profile.female ? 'women' : 'men'}'
+            : (cls.endsWith('+') ? '$cls kg' : '−$cls kg');
+        return (pct: pct, n: r.n, label: label);
+      }
+    }
+    return null;
   }
 
   // ======================================================================
