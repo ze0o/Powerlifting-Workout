@@ -7,6 +7,7 @@ import '../../core/models.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../../l10n/l10n.dart';
 
 /// What the editor returns.
 class SlotConfig {
@@ -67,7 +68,7 @@ class _ExercisePickerState extends State<_ExercisePicker> {
       for (final d in items) {
         rows.add(ListTile(
           dense: true,
-          title: Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          title: Text(tr(context, d.name), style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text(
             [
               if (d.lift != null) 'Competition lift',
@@ -105,7 +106,7 @@ class _ExercisePickerState extends State<_ExercisePicker> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text('ADD EXERCISE', style: headingStyle(context, size: 20)),
+              child: T('ADD EXERCISE', style: headingStyle(context, size: 20)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -147,7 +148,7 @@ Future<ExerciseDef?> _createExercise(BuildContext context, String initial) async
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(
-        title: const Text('New exercise'),
+        title: const T('New exercise'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -157,30 +158,30 @@ Future<ExerciseDef?> _createExercise(BuildContext context, String initial) async
                 controller: name,
                 autofocus: true,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. Pause bench with feet up'),
+                decoration: const InputDecoration(label: T('Name'), hintText: 'e.g. Pause bench with feet up'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: category,
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: const InputDecoration(label: T('Category')),
                 items: [for (final c in kCategories) DropdownMenuItem(value: c, child: Text(c))],
                 onChanged: (v) => setS(() => category = v ?? 'Other'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 value: pctOf,
-                decoration: const InputDecoration(labelText: 'Load as % of'),
+                decoration: const InputDecoration(label: T('Load as % of')),
                 items: const [
-                  DropdownMenuItem<String?>(value: null, child: Text('Nothing (I enter kg)')),
-                  DropdownMenuItem<String?>(value: 'squat', child: Text('Squat max')),
-                  DropdownMenuItem<String?>(value: 'bench', child: Text('Bench max')),
-                  DropdownMenuItem<String?>(value: 'deadlift', child: Text('Deadlift max')),
+                  DropdownMenuItem<String?>(value: null, child: T('Nothing (I enter kg)')),
+                  DropdownMenuItem<String?>(value: 'squat', child: T('Squat max')),
+                  DropdownMenuItem<String?>(value: 'bench', child: T('Bench max')),
+                  DropdownMenuItem<String?>(value: 'deadlift', child: T('Deadlift max')),
                 ],
                 onChanged: (v) => setS(() => pctOf = v),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Barbell (show plates)'),
+                title: const T('Barbell (show plates)'),
                 value: barbell,
                 onChanged: (v) => setS(() => barbell = v),
               ),
@@ -188,8 +189,8 @@ Future<ExerciseDef?> _createExercise(BuildContext context, String initial) async
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Create')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const T('Create')),
         ],
       ),
     ),
@@ -360,7 +361,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
           TextButton(
             onPressed: _save,
             style: TextButton.styleFrom(foregroundColor: Colors.white),
-            child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+            child: const T('SAVE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
           ),
         ],
       ),
@@ -369,14 +370,14 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'Exercise name')),
+            TextField(controller: name, decoration: const InputDecoration(label: T('Exercise name'))),
             const SizedBox(height: 16),
-            Text('LOAD', style: eyebrowStyle(context)),
+            T('LOAD', style: eyebrowStyle(context)),
             const SizedBox(height: 6),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'kg', label: Text('Fixed kg')),
-                ButtonSegment(value: 'pct', label: Text('% of a max')),
+                ButtonSegment(value: 'kg', label: T('Fixed kg')),
+                ButtonSegment(value: 'pct', label: T('% of a max')),
               ],
               selected: {mode},
               onSelectionChanged: (s) => _switchMode(s.first),
@@ -386,13 +387,13 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
               DropdownButtonFormField<String>(
                 value: pctOf ?? 'squat',
                 decoration: InputDecoration(
-                  labelText: 'Percent of',
+                  label: T('Percent of'),
                   helperText: max == null ? null : 'Current max: ${fmt(max)} kg. Targets update when your max changes.',
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'squat', child: Text('Squat max')),
-                  DropdownMenuItem(value: 'bench', child: Text('Bench max')),
-                  DropdownMenuItem(value: 'deadlift', child: Text('Deadlift max')),
+                  DropdownMenuItem(value: 'squat', child: T('Squat max')),
+                  DropdownMenuItem(value: 'bench', child: T('Bench max')),
+                  DropdownMenuItem(value: 'deadlift', child: T('Deadlift max')),
                 ],
                 onChanged: (v) => setState(() => pctOf = v),
               ),
@@ -403,7 +404,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('QUICK FILL', style: eyebrowStyle(context)),
+                  T('QUICK FILL', style: eyebrowStyle(context)),
                   const SizedBox(height: 8),
                   Row(children: [
                     Expanded(child: _num(quickSets, 'Sets', TextInputType.number)),
@@ -415,7 +416,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
                     Expanded(child: _num(quickRpe, 'RPE', const TextInputType.numberWithOptions(decimal: true))),
                   ]),
                   const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _applyQuick, child: const Text('Replace all sets')),
+                  OutlinedButton(onPressed: _applyQuick, child: const T('Replace all sets')),
                 ],
               ),
             ),
@@ -458,7 +459,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add set'),
+                label: const T('Add set'),
                 onPressed: () => setState(() {
                   final last = rows.isEmpty ? null : rows.last;
                   rows.add(_RowCtl(load: last?.load.text ?? '', reps: last?.reps.text ?? '', rpe: last?.rpe.text ?? ''));
@@ -470,7 +471,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
               controller: cue,
               minLines: 1,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Coaching cue (optional)', hintText: 'e.g. Brace before every rep'),
+              decoration: const InputDecoration(label: T('Coaching cue (optional)'), hintText: 'e.g. Brace before every rep'),
             ),
             if (widget.existing == null && widget.laterCount > 0) ...[
               const SizedBox(height: 12),
@@ -479,7 +480,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
                 value: later,
                 onChanged: (v) => setState(() => later = v),
                 title: Text('Also add to the ${widget.laterCount} later "${widget.workoutTitle}" workout${widget.laterCount == 1 ? '' : 's'}'),
-                subtitle: const Text('Same sets in every week. Edit any week afterwards.'),
+                subtitle: const T('Same sets in every week. Edit any week afterwards.'),
               ),
             ],
           ],
@@ -489,7 +490,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
   }
 
   Widget _num(TextEditingController c, String label, TextInputType kb) =>
-      TextField(controller: c, keyboardType: kb, textAlign: TextAlign.center, decoration: InputDecoration(labelText: label));
+      TextField(controller: c, keyboardType: kb, textAlign: TextAlign.center, decoration: InputDecoration(labelText: tr(context, label)));
 
   Widget _cell(TextEditingController c, TextInputType kb) => TextField(
         controller: c,

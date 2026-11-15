@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/calc.dart';
 import '../core/store.dart';
 import 'theme.dart';
+import '../l10n/l10n.dart';
 
 /// Navy header band with a red competition stripe. Pads for the status bar.
 class ScreenHeader extends StatelessWidget {
@@ -34,9 +35,9 @@ class ScreenHeader extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(eyebrow, style: eyebrowStyle(context, color: p.navyMuted)),
+                        Text(tr(context, eyebrow), style: eyebrowStyle(context, color: p.navyMuted)),
                         const SizedBox(height: 4),
-                        Text(title, style: headingStyle(context, size: 26, color: p.onNavy)),
+                        Text(tr(context, title), style: headingStyle(context, size: 26, color: p.onNavy)),
                       ],
                     ),
                   ),
@@ -67,8 +68,8 @@ class LiftTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(color: p.lift(lift), borderRadius: BorderRadius.circular(3)),
       child: Text(
-        (kLiftNames[lift] ?? lift).toUpperCase(),
-        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: p.bg),
+        tr(context, (kLiftNames[lift] ?? lift).toUpperCase()),
+        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: spacing(context, 1.2), color: p.bg),
       ),
     );
   }
@@ -90,8 +91,8 @@ class LevelChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(border: Border.all(color: c), borderRadius: BorderRadius.circular(3)),
-      child: Text(level.toUpperCase(),
-          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: c)),
+      child: Text(tr(context, level.toUpperCase()),
+          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: spacing(context, 1.2), color: c)),
     );
   }
 }
@@ -124,7 +125,7 @@ class PlateLoad extends StatelessWidget {
     final g = StoreScope.of(context).gym;
     final plan = platePlan(weight, bar: g.bar, plates: g.plates, collars: g.collarKg);
     if (plan == null) {
-      return Text('${fmt(weight)} = empty bar', style: TextStyle(fontSize: 12.5, color: p.muted));
+      return Text(tr(context, '{w} = empty bar', {'w': fmt(weight)}), style: TextStyle(fontSize: 12.5, color: p.muted));
     }
     final extra = [
       if (g.collars) 'collars',
@@ -153,7 +154,7 @@ class PlateLoad extends StatelessWidget {
           child: Text.rich(
             TextSpan(children: [
               TextSpan(text: fmt(weight), style: TextStyle(fontWeight: FontWeight.w800, color: p.ink)),
-              TextSpan(text: ' = bar + ${plan.plates.map(fmt).join(' · ')} per side'),
+              TextSpan(text: tr(context, ' = bar + {p} per side', {'p': plan.plates.map(fmt).join(' · ')})),
               if (extra.isNotEmpty)
                 TextSpan(
                     text: ' (${extra.join(', ')})',
@@ -221,7 +222,7 @@ class StatTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label.toUpperCase(), style: eyebrowStyle(context), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(tr(context, label).toUpperCase(), style: eyebrowStyle(context), maxLines: 1, overflow: TextOverflow.ellipsis),
         const SizedBox(height: 3),
         FittedBox(
           fit: BoxFit.scaleDown,
@@ -280,7 +281,7 @@ class NoteBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border(left: BorderSide(color: p.red, width: 3)),
       ),
-      child: Text(text, style: const TextStyle(fontSize: 13.5)),
+      child: Text(tr(context, text), style: const TextStyle(fontSize: 13.5)),
     );
   }
 }
@@ -469,14 +470,14 @@ Future<bool> confirmDialog(BuildContext context,
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: Text(body),
+      title: Text(tr(context, title)),
+      content: Text(tr(context, body)),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel')),
         FilledButton(
           style: danger ? FilledButton.styleFrom(backgroundColor: Palette.of(ctx).red, foregroundColor: Colors.white) : null,
           onPressed: () => Navigator.pop(ctx, true),
-          child: Text(action),
+          child: Text(tr(ctx, action)),
         ),
       ],
     ),
@@ -490,17 +491,17 @@ Future<String?> promptText(BuildContext context,
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(title),
+      title: Text(tr(ctx, title)),
       content: TextField(
         controller: ctl,
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(labelText: tr(ctx, label)),
         onSubmitted: (_) => Navigator.pop(ctx, true),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(action)),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr(ctx, action))),
       ],
     ),
   );
@@ -508,4 +509,4 @@ Future<String?> promptText(BuildContext context,
 }
 
 void toast(BuildContext context, String message) =>
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(context, message))));

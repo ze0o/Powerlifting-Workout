@@ -6,6 +6,7 @@ import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'tools_screen.dart';
+import '../../l10n/l10n.dart';
 
 class ProgressScreen extends StatelessWidget {
   const ProgressScreen({super.key});
@@ -89,13 +90,13 @@ class TotalCard extends StatelessWidget {
                   style: TextStyle(fontSize: 44, fontWeight: FontWeight.w900, height: 1, color: p.onNavy, fontFeatures: kTabular)),
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 4),
-                child: Text('kg', style: TextStyle(color: p.navyMuted, fontWeight: FontWeight.w700)),
+                child: T('kg', style: TextStyle(color: p.navyMuted, fontWeight: FontWeight.w700)),
               ),
               const Spacer(),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('GL POINTS', style: eyebrowStyle(context, color: p.navyMuted)),
+                  T('GL POINTS', style: eyebrowStyle(context, color: p.navyMuted)),
                   Text(glNow == null ? '—' : glNow.toStringAsFixed(1),
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
                 ],
@@ -128,7 +129,7 @@ class TotalCard extends StatelessWidget {
           if (bw == null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('Log your bodyweight to see live GL points.', style: TextStyle(color: p.navyMuted, fontSize: 12.5)),
+              child: T('Log your bodyweight to see live GL points.', style: TextStyle(color: p.navyMuted, fontSize: 12.5)),
             ),
         ],
       ),
@@ -166,7 +167,7 @@ class LiftCard extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   LiftTag(lift),
                   const SizedBox(height: 6),
-                  Text('BEST ESTIMATED MAX', style: eyebrowStyle(context)),
+                  T('BEST ESTIMATED MAX', style: eyebrowStyle(context)),
                 ]),
               ),
               Text.rich(TextSpan(children: [
@@ -202,7 +203,7 @@ class LiftCard extends StatelessWidget {
                         action: 'Update max');
                     if (ok) store.updateMax(lift, r25(top));
                   },
-                  child: const Text('Update'),
+                  child: const T('Update'),
                 ),
               ]),
             ),
@@ -284,9 +285,9 @@ class RecordsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('PERSONAL RECORDS', style: headingStyle(context, size: 18)),
+          T('PERSONAL RECORDS', style: headingStyle(context, size: 18)),
           const SizedBox(height: 2),
-          Text('Heaviest weight for at least 1, 3 and 5 reps, from every program you have logged.',
+          T('Heaviest weight for at least 1, 3 and 5 reps, from every program you have logged.',
               style: TextStyle(color: p.muted, fontSize: 12.5)),
           const SizedBox(height: 12),
           Row(children: [
@@ -315,7 +316,7 @@ class RecordsCard extends StatelessWidget {
           if (!any)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('Log squat, bench or deadlift sets and your records appear here.',
+              child: T('Log squat, bench or deadlift sets and your records appear here.',
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
             ),
         ],
@@ -344,11 +345,11 @@ class WeekLoadCard extends StatelessWidget {
         children: [
           Text('WEEK $w LOAD', style: headingStyle(context, size: 18)),
           const SizedBox(height: 2),
-          Text('Hard sets by area. The grey bar is last week. Change the week on the Program tab.',
+          T('Hard sets by area. The grey bar is last week. Change the week on the Program tab.',
               style: TextStyle(color: p.muted, fontSize: 12.5)),
           const SizedBox(height: 12),
           if (areas.isEmpty)
-            Text('No sets logged this week yet.', style: TextStyle(color: p.muted, fontSize: 13)),
+            T('No sets logged this week yet.', style: TextStyle(color: p.muted, fontSize: 13)),
           for (final a in areas)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),

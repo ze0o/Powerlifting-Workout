@@ -5,6 +5,7 @@ import '../../core/cloud.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../../l10n/l10n.dart';
 
 String timeAgo(DateTime t) {
   final d = DateTime.now().difference(t);
@@ -85,11 +86,11 @@ class _AccountScreenState extends State<AccountScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('You have a cloud backup'),
+        title: const T('You have a cloud backup'),
         content: Text('Your account was last synced $when. Which data do you want to keep?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep this phone\'s data')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Use the cloud backup')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Keep this phone\'s data')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const T('Use the cloud backup')),
         ],
       ),
     );
@@ -116,7 +117,7 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final cloud = CloudScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Account')),
+      appBar: AppBar(title: const T('Account')),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: ListView(
@@ -143,8 +144,8 @@ class _AccountScreenState extends State<AccountScreen> {
           const SizedBox(height: 14),
           SegmentedButton<bool>(
             segments: const [
-              ButtonSegment(value: false, label: Text('Sign in')),
-              ButtonSegment(value: true, label: Text('Create account')),
+              ButtonSegment(value: false, label: T('Sign in')),
+              ButtonSegment(value: true, label: T('Create account')),
             ],
             selected: {creating},
             onSelectionChanged: (s) => setState(() {
@@ -157,7 +158,7 @@ class _AccountScreenState extends State<AccountScreen> {
             TextField(
               controller: name,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: const InputDecoration(label: T('Name')),
             ),
             const SizedBox(height: 10),
           ],
@@ -165,14 +166,14 @@ class _AccountScreenState extends State<AccountScreen> {
             controller: email,
             keyboardType: TextInputType.emailAddress,
             autocorrect: false,
-            decoration: const InputDecoration(labelText: 'Email'),
+            decoration: const InputDecoration(label: T('Email')),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: password,
             obscureText: hide,
             decoration: InputDecoration(
-              labelText: 'Password',
+              label: T('Password'),
               helperText: creating ? 'At least 6 characters' : null,
               suffixIcon: IconButton(
                 tooltip: hide ? 'Show password' : 'Hide password',
@@ -196,7 +197,7 @@ class _AccountScreenState extends State<AccountScreen> {
           if (!creating)
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton(onPressed: _forgot, child: const Text('Forgot password?')),
+              child: TextButton(onPressed: _forgot, child: const T('Forgot password?')),
             ),
         ],
       ),
@@ -215,7 +216,7 @@ class _AccountScreenState extends State<AccountScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('SIGNED IN', style: eyebrowStyle(context)),
+              T('SIGNED IN', style: eyebrowStyle(context)),
               const SizedBox(height: 4),
               Text(cloud.user?.email ?? '', style: headingStyle(context, size: 18)),
               const SizedBox(height: 8),
@@ -230,13 +231,13 @@ class _AccountScreenState extends State<AccountScreen> {
                 Text(cloud.lastError!, style: TextStyle(color: p.warn, fontSize: 13)),
               ],
               const SizedBox(height: 6),
-              Text('Changes upload about 20 seconds after you stop editing, and when you leave the app.',
+              T('Changes upload about 20 seconds after you stop editing, and when you leave the app.',
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
               const SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 FilledButton.icon(
                   icon: const Icon(Icons.sync, size: 18),
-                  label: const Text('Sync now'),
+                  label: const T('Sync now'),
                   onPressed: cloud.syncing
                       ? null
                       : () async {
@@ -246,7 +247,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.cloud_download_outlined, size: 18),
-                  label: const Text('Restore from cloud'),
+                  label: const T('Restore from cloud'),
                   onPressed: () async {
                     final ok = await confirmDialog(context,
                         title: 'Restore from the cloud?',
@@ -273,7 +274,7 @@ class _AccountScreenState extends State<AccountScreen> {
             await cloud.flush();
             await cloud.signOut();
           },
-          child: const Text('Sign out'),
+          child: const T('Sign out'),
         ),
       ],
     );

@@ -6,6 +6,7 @@ import '../../core/store.dart';
 import '../../core/templates.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../../l10n/l10n.dart';
 
 class ProgramPickerScreen extends StatelessWidget {
   const ProgramPickerScreen({super.key});
@@ -14,7 +15,7 @@ class ProgramPickerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Palette.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose a program')),
+      appBar: AppBar(title: const T('Choose a program')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
@@ -41,15 +42,15 @@ class ProgramPickerScreen extends StatelessWidget {
                         Row(children: [
                           LevelChip(t.level),
                           const Spacer(),
-                          Text(t.customWeeks ? 'Any length' : '${t.weeks} weeks',
+                          Text(t.customWeeks ? tr(context, 'Any length') : tr(context, '{n} weeks', {'n': t.weeks}),
                               style: TextStyle(color: p.muted, fontWeight: FontWeight.w700, fontSize: 12.5)),
                         ]),
                         const SizedBox(height: 8),
-                        Text(t.name.toUpperCase(), style: headingStyle(context, size: 20)),
+                        Text(tr(context, t.name).toUpperCase(), style: headingStyle(context, size: 20)),
                         const SizedBox(height: 2),
-                        Text(t.frequency, style: TextStyle(color: p.muted, fontSize: 13)),
+                        Text(tr(context, t.frequency), style: TextStyle(color: p.muted, fontSize: 13)),
                         const SizedBox(height: 8),
-                        Text(t.summary, style: const TextStyle(fontSize: 13.5)),
+                        Text(tr(context, t.summary), style: const TextStyle(fontSize: 13.5)),
                       ],
                     ),
                   ),
@@ -99,9 +100,9 @@ class _StartProgramScreenState extends State<StartProgramScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Program name')),
+          TextField(controller: name, decoration: const InputDecoration(label: T('Program name'))),
           const SizedBox(height: 16),
-          Text('FIRST DAY', style: eyebrowStyle(context)),
+          T('FIRST DAY', style: eyebrowStyle(context)),
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
@@ -115,7 +116,7 @@ class _StartProgramScreenState extends State<StartProgramScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(t.startHint, style: TextStyle(color: p.muted, fontSize: 12.5)),
+          Text(tr(context, t.startHint), style: TextStyle(color: p.muted, fontSize: 12.5)),
           if (t.customWeeks) ...[
             const SizedBox(height: 16),
             Text('LENGTH: $weeks WEEKS', style: eyebrowStyle(context)),
@@ -146,7 +147,7 @@ class _StartProgramScreenState extends State<StartProgramScreen> {
               Navigator.of(context).popUntil((r) => r.isFirst);
               messenger.showSnackBar(SnackBar(content: Text('$label started.')));
             },
-            child: const Text('Start program'),
+            child: const T('Start program'),
           ),
         ],
       ),

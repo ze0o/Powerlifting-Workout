@@ -1,13 +1,15 @@
 name: meet_prep_log
 description: Powerlifting training log. Programs for every level, editable workouts, logging with RPE and referee lights, estimated maxes, IPF GL points and body composition tracking.
 publish_to: "none"
-version: 2.3.0+5
+version: 2.5.0+7
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   shared_preferences: ^2.2.3
   supabase_flutter: ^2.8.0

@@ -12,6 +12,7 @@ import '../../core/cloud.dart';
 import 'account_screen.dart';
 import 'program_picker.dart';
 import 'tools_screen.dart';
+import '../../l10n/l10n.dart';
 
 class AthleteScreen extends StatefulWidget {
   const AthleteScreen({super.key});
@@ -102,7 +103,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
         controller: _ctl(key),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         onChanged: (_) => _dirty = true,
-        decoration: InputDecoration(labelText: label, suffixText: suffix),
+        decoration: InputDecoration(labelText: tr(context, label), suffixText: suffix),
       );
 
   @override
@@ -124,23 +125,25 @@ class _AthleteScreenState extends State<AthleteScreen> {
               children: [
                 _account(context, p),
                 const SizedBox(height: 12),
+                _language(context, store),
+                const SizedBox(height: 12),
                 Panel(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('ATHLETE', style: headingStyle(context, size: 18)),
+                      T('ATHLETE', style: headingStyle(context, size: 18)),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _ctl('name'),
                         textCapitalization: TextCapitalization.words,
                         onChanged: (_) => _dirty = true,
-                        decoration: const InputDecoration(labelText: 'Name'),
+                        decoration: const InputDecoration(label: T('Name')),
                       ),
                       const SizedBox(height: 12),
                       SegmentedButton<String>(
                         segments: const [
-                          ButtonSegment(value: 'male', label: Text('Men')),
-                          ButtonSegment(value: 'female', label: Text('Women')),
+                          ButtonSegment(value: 'male', label: T('Men')),
+                          ButtonSegment(value: 'female', label: T('Women')),
                         ],
                         selected: {sex},
                         onSelectionChanged: (s) => setState(() {
@@ -152,8 +155,8 @@ class _AthleteScreenState extends State<AthleteScreen> {
                       const SizedBox(height: 10),
                       SegmentedButton<String>(
                         segments: const [
-                          ButtonSegment(value: 'classic', label: Text('Classic (raw)')),
-                          ButtonSegment(value: 'equipped', label: Text('Equipped')),
+                          ButtonSegment(value: 'classic', label: T('Classic (raw)')),
+                          ButtonSegment(value: 'equipped', label: T('Equipped')),
                         ],
                         selected: {division},
                         onSelectionChanged: (s) => setState(() {
@@ -166,7 +169,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             value: _classes.contains(weightClass) ? weightClass : _classes[5],
-                            decoration: const InputDecoration(labelText: 'Weight class'),
+                            decoration: const InputDecoration(label: T('Weight class')),
                             items: [
                               for (final k in _classes)
                                 DropdownMenuItem(value: k, child: Text(k.endsWith('+') ? '$k kg' : '−$k kg')),
@@ -181,7 +184,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         Expanded(child: _num('height', 'Height', suffix: 'cm')),
                       ]),
                       const SizedBox(height: 4),
-                      Text('IPF open classes. Used for GL points and the Body tab.',
+                      T('IPF open classes. Used for GL points and the Body tab.',
                           style: TextStyle(color: p.muted, fontSize: 12)),
                     ],
                   ),
@@ -191,9 +194,9 @@ class _AthleteScreenState extends State<AthleteScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('MAXES & GOALS', style: headingStyle(context, size: 18)),
+                      T('MAXES & GOALS', style: headingStyle(context, size: 18)),
                       const SizedBox(height: 4),
-                      Text('Every percentage in your program uses these maxes. Update them after a test or a meet.',
+                      T('Every percentage in your program uses these maxes. Update them after a test or a meet.',
                           style: TextStyle(color: p.muted, fontSize: 12.5)),
                       const SizedBox(height: 12),
                       for (final l in kLifts) ...[
@@ -208,7 +211,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         ]),
                         const SizedBox(height: 14),
                       ],
-                      Text('MEET WEIGHT RANGE', style: eyebrowStyle(context)),
+                      T('MEET WEIGHT RANGE', style: eyebrowStyle(context)),
                       const SizedBox(height: 8),
                       Row(children: [
                         Expanded(child: _num('bw-lo', 'Low', suffix: 'kg')),
@@ -216,7 +219,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         Expanded(child: _num('bw-hi', 'High', suffix: 'kg')),
                       ]),
                       const SizedBox(height: 14),
-                      FilledButton(onPressed: () => _save(store), child: const Text('Save profile & maxes')),
+                      FilledButton(onPressed: () => _save(store), child: const T('Save profile & maxes')),
                     ],
                   ),
                 ),
@@ -231,6 +234,28 @@ class _AthleteScreenState extends State<AthleteScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _language(BuildContext context, AppStore store) {
+    return Panel(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const T('LANGUAGE · اللغة', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+        const SizedBox(height: 10),
+        ValueListenableBuilder<String>(
+          valueListenable: store.localeCode,
+          builder: (context, code, _) => SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: 'system', label: Text(tr(context, 'Phone'))),
+              const ButtonSegment(value: 'en', label: Text('English')),
+              const ButtonSegment(value: 'ar', label: Text('العربية')),
+            ],
+            selected: {code},
+            onSelectionChanged: (s) => store.setLocale(s.first),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -283,28 +308,28 @@ class _AthleteScreenState extends State<AthleteScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(children: [
-            Expanded(child: Text('GYM SETUP', style: headingStyle(context, size: 18))),
+            Expanded(child: T('GYM SETUP', style: headingStyle(context, size: 18))),
             TextButton.icon(
               icon: const Icon(Icons.calculate_outlined, size: 18),
-              label: const Text('Calculators'),
+              label: const T('Calculators'),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ToolsScreen())),
             ),
           ]),
           const SizedBox(height: 4),
-          Text('Used for plate loading, warm-ups and the rest timer.', style: TextStyle(color: p.muted, fontSize: 12.5)),
+          T('Used for plate loading, warm-ups and the rest timer.', style: TextStyle(color: p.muted, fontSize: 12.5)),
           const SizedBox(height: 12),
           DropdownButtonFormField<double>(
             value: [15.0, 20.0, 25.0].contains(g.bar) ? g.bar : 20.0,
-            decoration: const InputDecoration(labelText: 'Bar'),
+            decoration: const InputDecoration(label: T('Bar')),
             items: const [
-              DropdownMenuItem(value: 20.0, child: Text('20 kg (men\'s / competition)')),
-              DropdownMenuItem(value: 15.0, child: Text('15 kg (women\'s)')),
-              DropdownMenuItem(value: 25.0, child: Text('25 kg (squat / specialty bar)')),
+              DropdownMenuItem(value: 20.0, child: T('20 kg (men\'s / competition)')),
+              DropdownMenuItem(value: 15.0, child: T('15 kg (women\'s)')),
+              DropdownMenuItem(value: 25.0, child: T('25 kg (squat / specialty bar)')),
             ],
             onChanged: (v) => store.updateGym((x) => x.bar = v ?? 20.0),
           ),
           const SizedBox(height: 12),
-          Text('PLATES IN YOUR GYM', style: eyebrowStyle(context)),
+          T('PLATES IN YOUR GYM', style: eyebrowStyle(context)),
           const SizedBox(height: 6),
           Wrap(spacing: 6, runSpacing: 6, children: [
             for (final kg in kAllPlates)
@@ -324,19 +349,19 @@ class _AthleteScreenState extends State<AthleteScreen> {
           ]),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Competition collars (2.5 kg each)'),
+            title: const T('Competition collars (2.5 kg each)'),
             value: g.collars,
             onChanged: (v) => store.updateGym((x) => x.collars = v),
           ),
           const Divider(),
           const SizedBox(height: 8),
-          Text('REST TIMER', style: eyebrowStyle(context)),
+          T('REST TIMER', style: eyebrowStyle(context)),
           const SizedBox(height: 8),
           Row(children: [
             Expanded(
               child: DropdownButtonFormField<int>(
                 value: g.restMain,
-                decoration: const InputDecoration(labelText: 'Main lifts'),
+                decoration: const InputDecoration(label: T('Main lifts')),
                 items: [
                   for (final sec in {120, 150, 180, 210, 240, 300, g.restMain}.toList()..sort())
                     DropdownMenuItem(value: sec, child: Text(clock(sec))),
@@ -348,7 +373,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
             Expanded(
               child: DropdownButtonFormField<int>(
                 value: g.restAccessory,
-                decoration: const InputDecoration(labelText: 'Accessories'),
+                decoration: const InputDecoration(label: T('Accessories')),
                 items: [
                   for (final sec in {45, 60, 75, 90, 120, 150, g.restAccessory}.toList()..sort())
                     DropdownMenuItem(value: sec, child: Text(clock(sec))),
@@ -359,8 +384,8 @@ class _AthleteScreenState extends State<AthleteScreen> {
           ]),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Start the timer when I mark a set'),
-            subtitle: const Text('Tap the light next to a set. The phone vibrates when rest is over.'),
+            title: const T('Start the timer when I mark a set'),
+            subtitle: const T('Tap the light next to a set. The phone vibrates when rest is over.'),
             value: g.autoRest,
             onChanged: (v) => store.updateGym((x) => x.autoRest = v),
           ),
@@ -374,7 +399,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('PROGRAMS', style: headingStyle(context, size: 18)),
+          T('PROGRAMS', style: headingStyle(context, size: 18)),
           const SizedBox(height: 8),
           for (final prog in store.programs.reversed)
             Container(
@@ -395,7 +420,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                           LevelChip(prog.level),
                           if (prog.id == store.activeId) ...[
                             const SizedBox(width: 6),
-                            Text('ACTIVE', style: eyebrowStyle(context, color: p.red)),
+                            T('ACTIVE', style: eyebrowStyle(context, color: p.red)),
                           ],
                         ]),
                         const SizedBox(height: 4),
@@ -412,9 +437,9 @@ class _AthleteScreenState extends State<AthleteScreen> {
                     tooltip: 'Program options',
                     onSelected: (v) => _programMenu(context, store, prog, v),
                     itemBuilder: (_) => [
-                      if (prog.id != store.activeId) const PopupMenuItem(value: 'switch', child: Text('Make active')),
-                      const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      if (prog.id != store.activeId) const PopupMenuItem(value: 'switch', child: T('Make active')),
+                      const PopupMenuItem(value: 'rename', child: T('Rename')),
+                      const PopupMenuItem(value: 'delete', child: T('Delete')),
                     ],
                   ),
                 ],
@@ -422,7 +447,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
             ),
           OutlinedButton.icon(
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Start a new program'),
+            label: const T('Start a new program'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgramPickerScreen())),
           ),
         ],
@@ -452,7 +477,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('BACKUP', style: headingStyle(context, size: 18)),
+          T('BACKUP', style: headingStyle(context, size: 18)),
           const SizedBox(height: 4),
           Text(
             'Everything is saved on this phone only. Copy a backup now and then and keep it somewhere safe, '
@@ -463,7 +488,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
           Wrap(spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.copy, size: 16),
-              label: const Text('Copy backup'),
+              label: const T('Copy backup'),
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: store.exportJson()));
                 if (context.mounted) toast(context, 'Backup copied.');
@@ -471,20 +496,20 @@ class _AthleteScreenState extends State<AthleteScreen> {
             ),
             OutlinedButton.icon(
               icon: const Icon(Icons.restore, size: 16),
-              label: const Text('Restore backup'),
+              label: const T('Restore backup'),
               onPressed: () => _restore(context, store),
             ),
           ]),
           const SizedBox(height: 14),
-          Text('EXPORT FOR SPREADSHEETS', style: eyebrowStyle(context)),
+          T('EXPORT FOR SPREADSHEETS', style: eyebrowStyle(context)),
           const SizedBox(height: 4),
-          Text('Copies CSV text. Paste it into Excel, Google Sheets or a Python notebook.',
+          T('Copies CSV text. Paste it into Excel, Google Sheets or a Python notebook.',
               style: TextStyle(color: p.muted, fontSize: 12.5)),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: [
             OutlinedButton.icon(
               icon: const Icon(Icons.table_chart_outlined, size: 16),
-              label: const Text('Copy sets (CSV)'),
+              label: const T('Copy sets (CSV)'),
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: store.exportSetsCsv()));
                 if (context.mounted) toast(context, 'Sets copied as CSV.');
@@ -492,7 +517,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
             ),
             OutlinedButton.icon(
               icon: const Icon(Icons.monitor_weight_outlined, size: 16),
-              label: const Text('Copy body data (CSV)'),
+              label: const T('Copy body data (CSV)'),
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: store.exportBodyCsv()));
                 if (context.mounted) toast(context, 'Body data copied as CSV.');
@@ -509,14 +534,14 @@ class _AthleteScreenState extends State<AthleteScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Restore backup'),
+        title: const T('Restore backup'),
         content: SizedBox(
           width: 400,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Paste the backup text. It replaces everything currently in the app.'),
+              const T('Paste the backup text. It replaces everything currently in the app.'),
               const SizedBox(height: 10),
               TextField(
                 controller: ctl,
@@ -529,11 +554,11 @@ class _AthleteScreenState extends State<AthleteScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Palette.of(ctx).red, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Replace my data'),
+            child: const T('Replace my data'),
           ),
         ],
       ),

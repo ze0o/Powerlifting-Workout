@@ -7,9 +7,10 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'models.dart';
 import 'store.dart';
 
-const kAppVersion = '2.3.0';
+const kAppVersion = '2.5.0';
 
 /// The project URL and the public (anon) key. Both are safe to ship in the app:
 /// row level security on the server limits every lifter to their own rows.
@@ -43,6 +44,7 @@ class CloudSync extends ChangeNotifier {
       ready = true;
       _sub = _db.auth.onAuthStateChange.listen((_) => notifyListeners());
       store.addListener(_onStoreChanged);
+      unawaited(refreshStanding());
     } catch (e) {
       lastError = 'The cloud is not available right now. Everything still saves on this phone.';
     }
@@ -60,6 +62,19 @@ class CloudSync extends ChangeNotifier {
     if (_debounce?.isActive ?? false) {
       _debounce!.cancel();
       await push();
+    }
+  }
+
+  /// Downloads the competition percentile tables (public, no sign-in needed).
+  Future<bool> refreshStanding() async {
+    if (!ready) return false;
+    try {
+      final rows = await _db.from('competition_percentiles').select();
+      final list = [for (final r in rows) Percentiles.fromJson(r)];
+      store.setStanding(list);
+      return list.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 

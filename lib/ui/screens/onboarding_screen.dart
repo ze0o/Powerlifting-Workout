@@ -8,6 +8,7 @@ import '../../core/templates.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'account_screen.dart';
+import '../../l10n/l10n.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -48,7 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _num(String key, String label, {String suffix = 'kg', String initial = ''}) => TextField(
         controller: _ctl(key, initial),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(labelText: label, suffixText: suffix),
+        decoration: InputDecoration(labelText: tr(context, label), suffixText: suffix),
       );
 
   void _next() {
@@ -141,7 +142,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Row(children: [
-                if (step > 0) TextButton(onPressed: () => setState(() => step--), child: const Text('Back')),
+                if (step > 0) TextButton(onPressed: () => setState(() => step--), child: const T('Back')),
                 const Spacer(),
                 FilledButton(onPressed: _next, child: Text(step < 2 ? 'Next' : 'Start training')),
               ]),
@@ -153,12 +154,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   List<Widget> _about(BuildContext context, Palette p) => [
-        const Text('Welcome. A few details so targets, weight classes and GL points fit you.'),
+        const T('Welcome. A few details so targets, weight classes and GL points fit you.'),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             icon: const Icon(Icons.cloud_download_outlined, size: 18),
-            label: const Text('Already have an account? Sign in and restore'),
+            label: const T('Already have an account? Sign in and restore'),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
           ),
         ),
@@ -166,13 +167,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         TextField(
           controller: _ctl('name'),
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Name'),
+          decoration: const InputDecoration(label: T('Name')),
         ),
         const SizedBox(height: 12),
         SegmentedButton<String>(
           segments: const [
-            ButtonSegment(value: 'male', label: Text('Men')),
-            ButtonSegment(value: 'female', label: Text('Women')),
+            ButtonSegment(value: 'male', label: T('Men')),
+            ButtonSegment(value: 'female', label: T('Women')),
           ],
           selected: {sex},
           onSelectionChanged: (s) => setState(() {
@@ -183,8 +184,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 10),
         SegmentedButton<String>(
           segments: const [
-            ButtonSegment(value: 'classic', label: Text('Classic (raw)')),
-            ButtonSegment(value: 'equipped', label: Text('Equipped')),
+            ButtonSegment(value: 'classic', label: T('Classic (raw)')),
+            ButtonSegment(value: 'equipped', label: T('Equipped')),
           ],
           selected: {division},
           onSelectionChanged: (s) => setState(() => division = s.first),
@@ -198,19 +199,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: _classes.contains(weightClass) ? weightClass : _classes[5],
-          decoration: const InputDecoration(labelText: 'Weight class you want to compete in'),
+          decoration: const InputDecoration(label: T('Weight class you want to compete in')),
           items: [
             for (final k in _classes) DropdownMenuItem(value: k, child: Text(k.endsWith('+') ? '$k kg' : '−$k kg')),
           ],
           onChanged: (v) => setState(() => weightClass = v ?? weightClass),
         ),
         const SizedBox(height: 4),
-        Text('IPF open classes. You can change any of this later in the Athlete tab.',
+        T('IPF open classes. You can change any of this later in the Athlete tab.',
             style: TextStyle(color: p.muted, fontSize: 12)),
       ];
 
   List<Widget> _maxes(BuildContext context, Palette p) => [
-        const Text('Your current one-rep maxes. Every percentage in your program is based on these.'),
+        const T('Your current one-rep maxes. Every percentage in your program is based on these.'),
         const SizedBox(height: 16),
         for (final l in kLifts) ...[
           Row(children: [
@@ -224,14 +225,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text("DON'T KNOW A MAX?", style: eyebrowStyle(context)),
+              T("DON'T KNOW A MAX?", style: eyebrowStyle(context)),
               const SizedBox(height: 4),
-              Text('Enter a recent hard set and how hard it felt (RPE 10 = nothing left).',
+              T('Enter a recent hard set and how hard it felt (RPE 10 = nothing left).',
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 value: estLift,
-                decoration: const InputDecoration(labelText: 'Lift'),
+                decoration: const InputDecoration(label: T('Lift')),
                 items: [for (final l in kLifts) DropdownMenuItem(value: l, child: Text(kLiftNames[l]!))],
                 onChanged: (v) => setState(() => estLift = v ?? 'squat'),
               ),
@@ -241,7 +242,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: TextField(
                     controller: estW,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Weight', suffixText: 'kg'),
+                    decoration: const InputDecoration(label: T('Weight'), suffixText: 'kg'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -249,7 +250,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: TextField(
                     controller: estR,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Reps'),
+                    decoration: const InputDecoration(label: T('Reps')),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -257,14 +258,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: TextField(
                     controller: estRpe,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'RPE'),
+                    decoration: const InputDecoration(label: T('RPE')),
                   ),
                 ),
               ]),
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerLeft,
-                child: OutlinedButton(onPressed: _useEstimate, child: const Text('Estimate and use it')),
+                child: OutlinedButton(onPressed: _useEstimate, child: const T('Estimate and use it')),
               ),
             ],
           ),
@@ -272,7 +273,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ];
 
   List<Widget> _program(BuildContext context, Palette p) => [
-        const Text('Pick a starting program. You can edit every workout after you start.'),
+        const T('Pick a starting program. You can edit every workout after you start.'),
         const SizedBox(height: 12),
         for (final t in kTemplates)
           Padding(
@@ -297,14 +298,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Row(children: [
                           LevelChip(t.level),
                           const SizedBox(width: 8),
-                          Text(t.customWeeks ? 'Any length' : '${t.weeks} weeks',
+                          Text(t.customWeeks ? tr(context, 'Any length') : tr(context, '{n} weeks', {'n': t.weeks}),
                               style: TextStyle(color: p.muted, fontSize: 12.5, fontWeight: FontWeight.w700)),
                         ]),
                         const SizedBox(height: 6),
-                        Text(t.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                        Text(t.frequency, style: TextStyle(color: p.muted, fontSize: 12.5)),
+                        Text(tr(context, t.name), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        Text(tr(context, t.frequency), style: TextStyle(color: p.muted, fontSize: 12.5)),
                         const SizedBox(height: 4),
-                        Text(t.summary, style: const TextStyle(fontSize: 13)),
+                        Text(tr(context, t.summary), style: const TextStyle(fontSize: 13)),
                       ]),
                     ),
                   ]),
@@ -313,7 +314,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
         const SizedBox(height: 8),
-        Text('FIRST DAY', style: eyebrowStyle(context)),
+        T('FIRST DAY', style: eyebrowStyle(context)),
         const SizedBox(height: 6),
         Align(
           alignment: Alignment.centerLeft,
@@ -327,7 +328,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(templateById(templateId).startHint, style: TextStyle(color: p.muted, fontSize: 12.5)),
+        Text(tr(context, templateById(templateId).startHint), style: TextStyle(color: p.muted, fontSize: 12.5)),
         if (templateById(templateId).customWeeks) ...[
           const SizedBox(height: 12),
           Text('LENGTH: $customWeeks WEEKS', style: eyebrowStyle(context)),

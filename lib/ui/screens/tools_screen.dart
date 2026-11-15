@@ -5,6 +5,7 @@ import '../../core/calc.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../../l10n/l10n.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -51,7 +52,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
         controller: c,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         onChanged: (_) => setState(() {}),
-        decoration: InputDecoration(labelText: label, suffixText: suffix),
+        decoration: InputDecoration(labelText: tr(context, label), suffixText: suffix),
       );
 
   @override
@@ -63,9 +64,15 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final lifts = [parseNum(sq.text), parseNum(bp.text), parseNum(dl.text)];
     final total = lifts.every((x) => x != null) ? lifts.fold<double>(0, (a, x) => a + x!) : null;
     final gl = (total != null && b != null) ? glPoints(total, b, female: female, equipped: equipped) : null;
+    final dots = (total != null && b != null) ? dotsPoints(total, b, female: female) : null;
+    final sameDivision = female == store.profile.female && equipped == store.profile.equipped;
+    final cls = b == null ? null : _classFor(b, female);
+    Standing? rank(String metric, double? v) =>
+        (v == null || !sameDivision) ? null : (store.standingFor(metric, v, weightClass: cls) ?? store.standingFor(metric, v));
+    final glRank = rank('gl', gl), totalRank = rank('total', total);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tools')),
+      appBar: AppBar(title: const T('Tools')),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: ListView(
@@ -75,7 +82,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('PLATE CALCULATOR', style: headingStyle(context, size: 18)),
+                  T('PLATE CALCULATOR', style: headingStyle(context, size: 18)),
                   const SizedBox(height: 4),
                   Text(
                     'Uses your gym setup: ${fmt(store.gym.bar)} kg bar'
@@ -107,15 +114,15 @@ class _ToolsScreenState extends State<ToolsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('GL POINTS CALCULATOR', style: headingStyle(context, size: 18)),
+                  T('GL POINTS CALCULATOR', style: headingStyle(context, size: 18)),
                   const SizedBox(height: 4),
-                  Text('The IPF formula that ranks lifters of different bodyweights against each other.',
+                  T('The IPF formula that ranks lifters of different bodyweights against each other.',
                       style: TextStyle(color: p.muted, fontSize: 12.5)),
                   const SizedBox(height: 12),
                   SegmentedButton<bool>(
                     segments: const [
-                      ButtonSegment(value: false, label: Text('Men')),
-                      ButtonSegment(value: true, label: Text('Women')),
+                      ButtonSegment(value: false, label: T('Men')),
+                      ButtonSegment(value: true, label: T('Women')),
                     ],
                     selected: {female},
                     onSelectionChanged: (s) => setState(() => female = s.first),
@@ -123,8 +130,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
                   const SizedBox(height: 8),
                   SegmentedButton<bool>(
                     segments: const [
-                      ButtonSegment(value: false, label: Text('Classic')),
-                      ButtonSegment(value: true, label: Text('Equipped')),
+                      ButtonSegment(value: false, label: T('Classic')),
+                      ButtonSegment(value: true, label: T('Equipped')),
                     ],
                     selected: {equipped},
                     onSelectionChanged: (s) => setState(() => equipped = s.first),
@@ -146,25 +153,40 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     child: Row(children: [
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('TOTAL', style: eyebrowStyle(context, color: p.navyMuted)),
+                          T('TOTAL', style: eyebrowStyle(context, color: p.navyMuted)),
                           Text(total == null ? '—' : '${fmt(total)} kg',
                               style: TextStyle(
                                   fontSize: 24, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
                         ]),
                       ),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text('GL POINTS', style: eyebrowStyle(context, color: p.navyMuted)),
+                        T('GL POINTS', style: eyebrowStyle(context, color: p.navyMuted)),
                         Text(gl == null ? '—' : gl.toStringAsFixed(2),
                             style: TextStyle(
                                 fontSize: 24, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
+                        Text('DOTS ${dots == null ? '—' : dots.toStringAsFixed(1)}',
+                            style: TextStyle(color: p.navyMuted, fontWeight: FontWeight.w700, fontFeatures: kTabular)),
                       ]),
                     ]),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Coming next: where this score puts you against real competition results in your class.',
-                    style: TextStyle(color: p.muted, fontSize: 12),
-                  ),
+                  const SizedBox(height: 10),
+                  T('WHERE YOU STAND', style: eyebrowStyle(context)),
+                  const SizedBox(height: 4),
+                  if (store.standing.isEmpty)
+                    T('Competition data isn\'t loaded yet. Connect to the internet, or ask the app owner to run '
+                        'analysis/build_standing.py.', style: TextStyle(color: p.muted, fontSize: 12.5))
+                  else if (!sameDivision)
+                    T('Rankings use your profile\'s sex and division. Switch the buttons back to see them.',
+                        style: TextStyle(color: p.muted, fontSize: 12.5))
+                  else ...[
+                    for (final (label, r) in [('GL points', glRank), ('Total', totalRank)])
+                      if (r != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _RankBar(label: label, standing: r),
+                        ),
+                    Text(store.standingSource, style: TextStyle(color: p.muted, fontSize: 11)),
+                  ],
                 ],
               ),
             ),
@@ -172,5 +194,41 @@ class _ToolsScreenState extends State<ToolsScreen> {
         ),
       ),
     );
+  }
+}
+
+String _classFor(double bw, bool female) {
+  final limits = female ? kWomenClasses : kMenClasses;
+  for (final c in limits) {
+    if (c.endsWith('+')) return c;
+    if (bw <= double.parse(c)) return c;
+  }
+  return limits.last;
+}
+
+class _RankBar extends StatelessWidget {
+  final String label;
+  final Standing standing;
+  const _RankBar({required this.label, required this.standing});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final top = (100 - standing.pct).clamp(0.5, 100.0).toDouble();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('$label: top ${top < 10 ? fmt1(top) : top.round()}% of ${standing.label} (${fmtInt(standing.n)} lifters)',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      const SizedBox(height: 4),
+      LayoutBuilder(builder: (context, c) {
+        return Stack(children: [
+          Container(height: 8, decoration: BoxDecoration(color: p.sunk, borderRadius: BorderRadius.circular(4))),
+          Container(
+            height: 8,
+            width: c.maxWidth * (standing.pct / 100).clamp(0.0, 1.0).toDouble(),
+            decoration: BoxDecoration(color: p.red, borderRadius: BorderRadius.circular(4)),
+          ),
+        ]);
+      }),
+    ]);
   }
 }

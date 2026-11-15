@@ -7,6 +7,7 @@ import '../../core/models.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../../l10n/l10n.dart';
 
 class Metric {
   final String key;
@@ -57,7 +58,7 @@ class _BodyScreenState extends State<BodyScreen> {
         foregroundColor: Colors.white,
         onPressed: () => _open(context),
         icon: const Icon(Icons.add),
-        label: const Text('Add entry'),
+        label: const T('Add entry'),
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 96),
@@ -76,7 +77,7 @@ class _BodyScreenState extends State<BodyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('NOTHING LOGGED YET', style: headingStyle(context, size: 18)),
+            T('NOTHING LOGGED YET', style: headingStyle(context, size: 18)),
             const SizedBox(height: 6),
             const Text(
               'Add a morning weigh-in, or a full body-composition scan (InBody or similar): '
@@ -84,7 +85,7 @@ class _BodyScreenState extends State<BodyScreen> {
               'Bodyweight you enter in a workout also appears here.',
             ),
             const SizedBox(height: 12),
-            FilledButton(onPressed: () => _open(context), child: const Text('Add first entry')),
+            FilledButton(onPressed: () => _open(context), child: const T('Add first entry')),
           ],
         ),
       );
@@ -140,7 +141,7 @@ class _BodyScreenState extends State<BodyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('TREND', style: eyebrowStyle(context)),
+              T('TREND', style: eyebrowStyle(context)),
               const SizedBox(height: 8),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final m in available)
@@ -162,7 +163,7 @@ class _BodyScreenState extends State<BodyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('HISTORY', style: eyebrowStyle(context)),
+              T('HISTORY', style: eyebrowStyle(context)),
               const SizedBox(height: 4),
               for (final e in entries.reversed)
                 InkWell(
@@ -241,7 +242,7 @@ class _BodyScreenState extends State<BodyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('WEIGHT TREND', style: eyebrowStyle(context)),
+          T('WEIGHT TREND', style: eyebrowStyle(context)),
           const SizedBox(height: 10),
           Row(children: [
             Expanded(
@@ -299,7 +300,7 @@ class _BodyScreenState extends State<BodyScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('WEIGHT CLASS', style: eyebrowStyle(context)),
+                T('WEIGHT CLASS', style: eyebrowStyle(context)),
                 const SizedBox(height: 2),
                 Text(limit == null ? '${pr.weightClass} kg' : '−${pr.weightClass} kg',
                     style: headingStyle(context, size: 24)),
@@ -311,10 +312,10 @@ class _BodyScreenState extends State<BodyScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('MEET RANGE', style: eyebrowStyle(context)),
+              T('MEET RANGE', style: eyebrowStyle(context)),
               Text('${fmt(lo)}–${fmt(hi)} kg', style: const TextStyle(fontWeight: FontWeight.w800, fontFeatures: kTabular)),
               const SizedBox(height: 6),
-              Text('CURRENT', style: eyebrowStyle(context)),
+              T('CURRENT', style: eyebrowStyle(context)),
               Text(bw == null ? '—' : '${fmt(bw)} kg',
                   style: const TextStyle(fontWeight: FontWeight.w800, fontFeatures: kTabular)),
             ],
@@ -473,7 +474,7 @@ class _BodyEntryScreenState extends State<BodyEntryScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
-            labelText: f.$2,
+            labelText: tr(context, f.$2),
             suffixText: f.$3.isEmpty ? null : f.$3,
             helperText: f.$1 == 'pbf' && autoPbf != null ? 'Leave empty: ${fmt1(autoPbf)}% from fat mass' : null,
           ),
@@ -488,7 +489,7 @@ class _BodyEntryScreenState extends State<BodyEntryScreen> {
           TextButton(
             onPressed: _save,
             style: TextButton.styleFrom(foregroundColor: Colors.white),
-            child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
+            child: const T('SAVE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
           ),
         ],
       ),
@@ -506,7 +507,7 @@ class _BodyEntryScreenState extends State<BodyEntryScreen> {
               },
             ),
             const SizedBox(height: 16),
-            Text('SCALE', style: eyebrowStyle(context)),
+            T('SCALE', style: eyebrowStyle(context)),
             const SizedBox(height: 8),
             Row(children: [
               Expanded(child: field(_fields[0])),
@@ -514,9 +515,9 @@ class _BodyEntryScreenState extends State<BodyEntryScreen> {
               Expanded(child: field(_fields[1])),
             ]),
             const SizedBox(height: 20),
-            Text('BODY COMPOSITION SCAN (OPTIONAL)', style: eyebrowStyle(context)),
+            T('BODY COMPOSITION SCAN (OPTIONAL)', style: eyebrowStyle(context)),
             const SizedBox(height: 4),
-            Text('Copy the numbers from your InBody (or similar) printout.', style: TextStyle(color: p.muted, fontSize: 12.5)),
+            T('Copy the numbers from your InBody (or similar) printout.', style: TextStyle(color: p.muted, fontSize: 12.5)),
             const SizedBox(height: 10),
             for (var i = 2; i < _fields.length; i += 2) ...[
               Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -531,7 +532,7 @@ class _BodyEntryScreenState extends State<BodyEntryScreen> {
               controller: note,
               minLines: 1,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Notes', hintText: 'e.g. after travel, morning fasted'),
+              decoration: const InputDecoration(label: T('Notes'), hintText: 'e.g. after travel, morning fasted'),
             ),
           ],
         ),

@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import 'program_picker.dart';
 import 'workout_screen.dart';
+import '../../l10n/l10n.dart';
 
 class ProgramScreen extends StatelessWidget {
   const ProgramScreen({super.key});
@@ -28,7 +29,7 @@ class ProgramScreen extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         ScreenHeader(
-          eyebrow: '${prog.level.toUpperCase()} · ${prog.weeks} WEEKS',
+          eyebrow: '${tr(context, prog.level.toUpperCase())} · ${tr(context, '{n} WEEKS', {'n': prog.weeks})}',
           title: prog.name.toUpperCase(),
           actions: [
             IconButton(
@@ -47,9 +48,9 @@ class ProgramScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('WEEK $w${label.isNotEmpty ? ' · ${label.toUpperCase()}' : ''}', style: headingStyle(context, size: 18)),
+                    Text('${tr(context, 'WEEK {n}', {'n': w})}${label.isNotEmpty ? ' · ${tr(context, label.toUpperCase())}' : ''}', style: headingStyle(context, size: 18)),
                     const SizedBox(height: 2),
-                    Text('${shortDate(a)} – ${shortDate(b)} · ${list.length} workout${list.length == 1 ? '' : 's'}',
+                    Text('${shortDate(a)} – ${shortDate(b)} · ${tr(context, 'Workouts: {n}', {'n': list.length})}',
                         style: TextStyle(color: p.muted, fontSize: 13)),
                   ],
                 ),
@@ -58,9 +59,9 @@ class ProgramScreen extends StatelessWidget {
                 tooltip: 'Week options',
                 onSelected: (v) => _weekMenu(context, v, w),
                 itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'add', child: Text('Add workout')),
-                  PopupMenuItem(value: 'copy', enabled: w < prog.weeks, child: Text('Copy this week to week ${w + 1}')),
-                  const PopupMenuItem(value: 'checkin', child: Text('Weekly check-in')),
+                  const PopupMenuItem(value: 'add', child: T('Add workout')),
+                  PopupMenuItem(value: 'copy', enabled: w < prog.weeks, child: Text(tr(context, 'Copy this week to week {n}', {'n': w + 1}))),
+                  const PopupMenuItem(value: 'checkin', child: T('Weekly check-in')),
                 ],
               ),
             ],
@@ -89,7 +90,7 @@ class ProgramScreen extends StatelessWidget {
         if (list.isEmpty)
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 6, 16, 6),
-            child: Panel(child: Text('No workouts this week yet. Add one, then add exercises to it.')),
+            child: Panel(child: T('No workouts this week yet. Add one, then add exercises to it.')),
           ),
         for (final x in list)
           Padding(
@@ -102,7 +103,7 @@ class ProgramScreen extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add workout'),
+              label: const T('Add workout'),
               onPressed: () => addWorkoutDialog(context, w),
             ),
           ),
@@ -147,11 +148,11 @@ class _NoProgram extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Pick a program for your level, or build your own from scratch.'),
+                const T('Pick a program for your level, or build your own from scratch.'),
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgramPickerScreen())),
-                  child: const Text('Choose a program'),
+                  child: const T('Choose a program'),
                 ),
               ],
             ),
@@ -282,7 +283,7 @@ class WorkoutCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: Text(w.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                            child: Text(tr(context, w.title), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                           ),
                           const SizedBox(width: 8),
                           StatusChip(status),
@@ -325,14 +326,14 @@ class WorkoutCard extends StatelessWidget {
                           spacing: 12,
                           runSpacing: 4,
                           children: [
-                            if (dur != null) _meta(p, Icons.timer_outlined, w.isLive ? '$dur min so far' : fmtDuration(dur)),
-                            _meta(p, Icons.check_circle_outline, '${st.done}/${st.planned} sets'),
+                            if (dur != null) _meta(p, Icons.timer_outlined, w.isLive ? tr(context, '{n} min so far', {'n': dur}) : fmtDuration(dur)),
+                            _meta(p, Icons.check_circle_outline, tr(context, '{a}/{b} sets', {'a': st.done, 'b': st.planned})),
                             if (st.volume > 0) _meta(p, Icons.fitness_center, '${fmtInt(st.volume)} kg'),
                             if (bw != null) _meta(p, Icons.monitor_weight_outlined, '${fmt(bw)} kg BW'),
                           ],
                         ),
                       ] else
-                        Text('${w.exercises.length} exercise${w.exercises.length == 1 ? '' : 's'} · ${st.planned} sets',
+                        Text(tr(context, 'Exercises: {a} · Sets: {b}', {'a': w.exercises.length, 'b': st.planned}),
                             style: TextStyle(fontSize: 12, color: p.muted)),
                     ],
                   ),
@@ -376,11 +377,11 @@ class StatusChip extends StatelessWidget {
         border: Border.all(color: color),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: Text(text,
+      child: Text(tr(context, text),
           style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              letterSpacing: 1,
+              letterSpacing: spacing(context, 1),
               color: status == 'live' || status == 'done' ? Colors.white : color)),
     );
   }
@@ -395,7 +396,7 @@ Future<void> addWorkoutDialog(BuildContext context, int week) async {
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(
-        title: const Text('Add workout'),
+        title: const T('Add workout'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,7 +405,7 @@ Future<void> addWorkoutDialog(BuildContext context, int week) async {
               controller: ctl,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name', hintText: 'e.g. Heavy Squat'),
+              decoration: const InputDecoration(label: T('Name'), hintText: 'e.g. Heavy Squat'),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -418,8 +419,8 @@ Future<void> addWorkoutDialog(BuildContext context, int week) async {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const T('Add')),
         ],
       ),
     ),
@@ -459,11 +460,11 @@ class CheckinSheet extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            Text('WEEK $w', style: eyebrowStyle(context)),
+            Text(tr(context, 'WEEK {n}', {'n': w}), style: eyebrowStyle(context)),
             const SizedBox(height: 2),
-            Text('WEEKLY CHECK-IN', style: headingStyle(context, size: 22)),
+            T('WEEKLY CHECK-IN', style: headingStyle(context, size: 22)),
             const SizedBox(height: 4),
-            Text('Your logged workouts fill in automatically. Add sleep and anything that hurt, then copy it to your coach.',
+            T('Your logged workouts fill in automatically. Add sleep and anything that hurt, then copy it to your coach.',
                 style: TextStyle(color: p.muted, fontSize: 13)),
             const SizedBox(height: 12),
             Row(children: [
@@ -472,7 +473,7 @@ class CheckinSheet extends StatelessWidget {
                   key: ValueKey('$k-sleep'),
                   initialValue: c.sleep,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Sleep, avg hours', hintText: 'e.g. 6.5'),
+                  decoration: const InputDecoration(label: T('Sleep, avg hours'), hintText: 'e.g. 6.5'),
                   onChanged: (v) => store.setCheckin(w, sleep: v),
                 ),
               ),
@@ -482,7 +483,7 @@ class CheckinSheet extends StatelessWidget {
                 child: TextFormField(
                   key: ValueKey('$k-pain'),
                   initialValue: c.pain,
-                  decoration: const InputDecoration(labelText: 'Pain or tightness', hintText: 'e.g. left hip on squats'),
+                  decoration: const InputDecoration(label: T('Pain or tightness'), hintText: 'e.g. left hip on squats'),
                   onChanged: (v) => store.setCheckin(w, pain: v),
                 ),
               ),
@@ -493,7 +494,7 @@ class CheckinSheet extends StatelessWidget {
               initialValue: c.notes,
               minLines: 2,
               maxLines: 5,
-              decoration: const InputDecoration(labelText: 'Notes for the week', hintText: 'Energy, technique, bar speed'),
+              decoration: const InputDecoration(label: T('Notes for the week'), hintText: 'Energy, technique, bar speed'),
               onChanged: (v) => store.setCheckin(w, notes: v),
             ),
             const SizedBox(height: 12),
@@ -507,7 +508,7 @@ class CheckinSheet extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: FilledButton.icon(
                 icon: const Icon(Icons.copy, size: 18),
-                label: const Text('Copy check-in'),
+                label: const T('Copy check-in'),
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: store.checkinText(w)));
                   if (context.mounted) toast(context, 'Copied. Paste it into your chat with your coach.');

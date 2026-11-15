@@ -627,3 +627,151 @@ class GymPrefs {
     );
   }
 }
+
+// ---------- competition ----------
+
+/// One attempt on the platform: the weight and the three referee lights
+/// (0 = not judged yet, 1 = white / good lift, 2 = red / no lift).
+class Attempt {
+  String kg;
+  List<int> lights;
+
+  Attempt({this.kg = '', List<int>? lights}) : lights = lights ?? [0, 0, 0];
+
+  bool get judged => lights.every((l) => l != 0);
+  bool get good => lights.where((l) => l == 1).length >= 2;
+  bool get decided => lights.where((l) => l == 1).length >= 2 || lights.where((l) => l == 2).length >= 2;
+
+  Map<String, dynamic> toJson() => {'kg': kg, 'lights': lights};
+
+  factory Attempt.fromJson(Map<dynamic, dynamic> j) {
+    final l = [for (final x in jl(j['lights'])) ji(x) ?? 0];
+    return Attempt(kg: js(j['kg']), lights: l.length == 3 ? l : null);
+  }
+}
+
+class Meet {
+  String id;
+  String name;
+  String date; // ISO
+  String federation;
+  String weighIn; // '2h' | '24h'
+  String location;
+  Map<String, List<Attempt>> attempts; // lift -> 3 attempts (planned, then results)
+  double? weighInKg;
+  Set<String> checklist; // ticked items
+  String notes;
+
+  Meet({
+    required this.id,
+    required this.name,
+    required this.date,
+    this.federation = 'IPF',
+    this.weighIn = '2h',
+    this.location = '',
+    Map<String, List<Attempt>>? attempts,
+    this.weighInKg,
+    Set<String>? checklist,
+    this.notes = '',
+  })  : attempts = attempts ?? {for (final l in kLifts) l: [Attempt(), Attempt(), Attempt()]},
+        checklist = checklist ?? {};
+
+  /// Best good lift for one lift, or null.
+  double? best(String lift) {
+    double? b;
+    for (final a in attempts[lift] ?? const <Attempt>[]) {
+      final v = parseNum(a.kg);
+      if (a.good && v != null && (b == null || v > b)) b = v;
+    }
+    return b;
+  }
+
+  /// Meet total: only counts when every lift has a good attempt.
+  double? get total {
+    final v = [for (final l in kLifts) best(l)];
+    if (v.any((x) => x == null)) return null;
+    return v.fold<double>(0, (a, x) => a + x!);
+  }
+
+  /// Planned total from the 3rd attempts (or the last planned weight).
+  double? plannedTotal(int attempt) {
+    var sum = 0.0;
+    for (final l in kLifts) {
+      final v = parseNum((attempts[l] ?? const <Attempt>[]).length > attempt ? attempts[l]![attempt].kg : '');
+      if (v == null) return null;
+      sum += v;
+    }
+    return sum;
+  }
+
+  bool get started => attempts.values.any((list) => list.any((a) => a.lights.any((l) => l != 0)));
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'date': date,
+        'federation': federation,
+        'weighIn': weighIn,
+        if (location.isNotEmpty) 'location': location,
+        'attempts': {for (final e in attempts.entries) e.key: [for (final a in e.value) a.toJson()]},
+        if (weighInKg != null) 'weighInKg': weighInKg,
+        'checklist': checklist.toList(),
+        if (notes.isNotEmpty) 'notes': notes,
+      };
+
+  factory Meet.fromJson(Map<dynamic, dynamic> j) {
+    final att = <String, List<Attempt>>{};
+    for (final l in kLifts) {
+      final list = [for (final a in jl(jm(j['attempts'])[l])) Attempt.fromJson(jm(a))];
+      while (list.length < 3) {
+        list.add(Attempt());
+      }
+      att[l] = list.take(3).toList();
+    }
+    return Meet(
+      id: js(j['id']),
+      name: js(j['name']),
+      date: js(j['date']),
+      federation: js(j['federation']).isEmpty ? 'IPF' : js(j['federation']),
+      weighIn: js(j['weighIn']) == '24h' ? '24h' : '2h',
+      location: js(j['location']),
+      attempts: att,
+      weighInKg: jd(j['weighInKg']),
+      checklist: {for (final x in jl(j['checklist'])) js(x)},
+      notes: js(j['notes']),
+    );
+  }
+}
+
+/// Percentile cut points (p1..p99) from real competition results.
+class Percentiles {
+  final String sex; // 'male' | 'female'
+  final String equipment; // 'classic' | 'equipped'
+  final String weightClass; // '105', '120+', or 'all'
+  final String metric; // 'total' | 'gl' | 'squat' | 'bench' | 'deadlift'
+  final int n;
+  final List<double> cuts;
+  final String source;
+
+  const Percentiles(this.sex, this.equipment, this.weightClass, this.metric, this.n, this.cuts, this.source);
+
+  Map<String, dynamic> toJson() => {
+        'sex': sex,
+        'equipment': equipment,
+        'weight_class': weightClass,
+        'metric': metric,
+        'n': n,
+        'p': cuts,
+        'source': source,
+      };
+
+  factory Percentiles.fromJson(Map<dynamic, dynamic> j) => Percentiles(
+        js(j['sex']),
+        js(j['equipment']),
+        js(j['weight_class']),
+        js(j['metric']),
+        ji(j['n']) ?? 0,
+        [for (final x in jl(j['p'])) jd(x) ?? 0],
+        js(j['source']),
+      );
+}

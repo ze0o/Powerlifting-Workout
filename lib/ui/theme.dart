@@ -191,10 +191,13 @@ ThemeData buildTheme(Brightness b) {
 }
 
 /// Heavy uppercase heading, scoreboard style.
+/// Letter spacing breaks Arabic joining, so it is turned off in right-to-left text.
+double spacing(BuildContext context, double v) => Directionality.of(context) == TextDirection.rtl ? 0 : v;
+
 TextStyle headingStyle(BuildContext context, {double size = 22, Color? color}) => TextStyle(
       fontSize: size,
       fontWeight: FontWeight.w900,
-      letterSpacing: 0.5,
+      letterSpacing: spacing(context, 0.5),
       height: 1.05,
       color: color ?? Palette.of(context).ink,
     );
@@ -202,6 +205,6 @@ TextStyle headingStyle(BuildContext context, {double size = 22, Color? color}) =
 TextStyle eyebrowStyle(BuildContext context, {Color? color}) => TextStyle(
       fontSize: 11.5,
       fontWeight: FontWeight.w700,
-      letterSpacing: 1.4,
+      letterSpacing: spacing(context, 1.4),
       color: color ?? Palette.of(context).muted,
     );

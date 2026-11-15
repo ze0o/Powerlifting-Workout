@@ -12,6 +12,7 @@ import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'exercise_editor.dart';
+import '../../l10n/l10n.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final String workoutId;
@@ -55,7 +56,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final p = Palette.of(context);
     final w = store.workout(widget.workoutId);
     if (w == null) {
-      return Scaffold(appBar: AppBar(), body: const Center(child: Text('This workout was deleted.')));
+      return Scaffold(appBar: AppBar(), body: const Center(child: T('This workout was deleted.')));
     }
     final prog = store.active!;
     final st = store.stats(w);
@@ -64,7 +65,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(w.title),
+        title: Text(tr(context, w.title)),
         actions: [
           IconButton(
             tooltip: 'Start rest timer',
@@ -75,10 +76,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             tooltip: 'Workout options',
             onSelected: (v) => _menu(v, w),
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'rename', child: Text('Rename')),
-              const PopupMenuItem(value: 'date', child: Text('Change date')),
-              PopupMenuItem(value: 'copy', enabled: w.week < prog.weeks, child: Text('Copy to week ${w.week + 1}')),
-              const PopupMenuItem(value: 'delete', child: Text('Delete workout')),
+              const PopupMenuItem(value: 'rename', child: T('Rename')),
+              const PopupMenuItem(value: 'date', child: T('Change date')),
+              PopupMenuItem(value: 'copy', enabled: w.week < prog.weeks, child: Text(tr(context, 'Copy to week {n}', {'n': w.week + 1}))),
+              const PopupMenuItem(value: 'delete', child: T('Delete workout')),
             ],
           ),
         ],
@@ -122,10 +123,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           Icon(Icons.calendar_today, size: 16, color: p.muted),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text('${weekdayDate(w.date)} · Week ${w.week}',
+                            child: Text('${weekdayDate(w.date)} · ${tr(context, 'Week {n}', {'n': w.week})}',
                                 style: const TextStyle(fontWeight: FontWeight.w700)),
                           ),
-                          Text('Change', style: TextStyle(color: p.blue, fontWeight: FontWeight.w600, fontSize: 13)),
+                          T('Change', style: TextStyle(color: p.blue, fontWeight: FontWeight.w600, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -157,7 +158,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           key: ValueKey('$k-dur'),
                           initialValue: w.durationMin?.toString() ?? '',
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Duration (min)'),
+                          decoration: const InputDecoration(label: T('Duration (min)')),
                           onChanged: (v) => store.setDuration(w.id, v),
                         ),
                       ),
@@ -168,7 +169,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                           initialValue: w.bodyweight == null ? '' : fmt(w.bodyweight!),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            labelText: 'Bodyweight (kg)',
+                            label: T('Bodyweight (kg)'),
                             hintText: store.latestWeight == null ? null : fmt(store.latestWeight!),
                           ),
                           onChanged: (v) => store.setWorkoutBodyweight(w.id, v),
@@ -177,7 +178,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('Bodyweight is also saved to the Body tab for this date.',
+                  T('Bodyweight is also saved to the Body tab for this date.',
                       style: TextStyle(fontSize: 11.5, color: p.muted)),
                   const SizedBox(height: 12),
                   if (w.readiness != null || w.loadScale != 1.0) ...[
@@ -207,7 +208,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             ],
             OutlinedButton.icon(
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add exercise'),
+              label: const T('Add exercise'),
               onPressed: () => _addExercise(w),
             ),
             const SizedBox(height: 14),
@@ -217,7 +218,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               minLines: 3,
               maxLines: 6,
               decoration: const InputDecoration(
-                labelText: 'Session notes',
+                label: T('Session notes'),
                 hintText: 'Bar speed, technique, energy, anything that hurt',
               ),
               onChanged: (v) => store.setWorkoutNotes(w.id, v),
@@ -250,7 +251,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(score == null ? 'TODAY\'S LOAD' : 'READINESS', style: eyebrowStyle(context)),
-            Text(pct == 0 ? 'Main lifts as planned' : 'Main lifts $pct% lighter today',
+            Text(pct == 0 ? tr(context, 'Main lifts as planned') : tr(context, 'Main lifts {n}% lighter today', {'n': pct}),
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
           ]),
         ),
@@ -259,19 +260,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             final pick = await showDialog<double>(
               context: context,
               builder: (ctx) => SimpleDialog(
-                title: const Text("Today's main-lift loads"),
+                title: const T("Today's main-lift loads"),
                 children: [
                   for (final (v, label) in const [(1.0, 'As planned'), (0.95, '5% lighter'), (0.90, '10% lighter')])
                     SimpleDialogOption(
                       onPressed: () => Navigator.pop(ctx, v),
-                      child: Text(label, style: TextStyle(fontWeight: v == w.loadScale ? FontWeight.w800 : FontWeight.w400)),
+                      child: Text(tr(context, label), style: TextStyle(fontWeight: v == w.loadScale ? FontWeight.w800 : FontWeight.w400)),
                     ),
                 ],
               ),
             );
             if (pick != null) store.setLoadScale(w.id, pick);
           },
-          child: const Text('Change'),
+          child: const T('Change'),
         ),
       ]),
     );
@@ -292,7 +293,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final chosen = await showAdjustmentDialog(context, list);
     if (chosen.isNotEmpty) {
       store.applyAdjustments(chosen);
-      if (mounted) toast(context, 'Targets updated from week ${w.week + 1}.');
+      if (mounted) toast(context, tr(context, 'Targets updated from week {n}.', {'n': w.week + 1}));
     }
   }
 
@@ -302,8 +303,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         children: [
           Icon(Icons.check_circle, color: p.ok),
           const SizedBox(width: 6),
-          Expanded(child: Text('Completed', style: TextStyle(fontWeight: FontWeight.w800, color: p.ok))),
-          TextButton(onPressed: () => store.reopenWorkout(w.id), child: const Text('Reopen')),
+          Expanded(child: T('Completed', style: TextStyle(fontWeight: FontWeight.w800, color: p.ok))),
+          TextButton(onPressed: () => store.reopenWorkout(w.id), child: const T('Reopen')),
         ],
       );
     }
@@ -313,13 +314,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           Container(width: 10, height: 10, decoration: BoxDecoration(color: p.red, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Expanded(
-            child: Text('Live · ${w.elapsedMin ?? 0} min',
+            child: Text(tr(context, 'Live · {n} min', {'n': w.elapsedMin ?? 0}),
                 style: TextStyle(fontWeight: FontWeight.w800, color: p.red, fontFeatures: kTabular)),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(backgroundColor: p.red, foregroundColor: Colors.white),
             icon: const Icon(Icons.flag, size: 18),
-            label: const Text('Finish workout'),
+            label: const T('Finish workout'),
             onPressed: () => _finish(w),
           ),
         ],
@@ -331,10 +332,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       children: [
         FilledButton.icon(
           icon: const Icon(Icons.play_arrow, size: 18),
-          label: const Text('Start workout'),
+          label: const T('Start workout'),
           onPressed: () => _start(w),
         ),
-        OutlinedButton(onPressed: () => _finish(w), child: const Text('Mark as done')),
+        OutlinedButton(onPressed: () => _finish(w), child: const T('Mark as done')),
       ],
     );
   }
@@ -427,7 +428,7 @@ class ExerciseLogBlock extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (s.lift != null) LiftTag(s.lift!),
-                    Text(s.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    Text(tr(context, s.name), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   ],
                 ),
               ),
@@ -435,10 +436,10 @@ class ExerciseLogBlock extends StatelessWidget {
                 tooltip: 'Exercise options',
                 onSelected: (v) => _menu(context, v),
                 itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Edit sets and targets')),
-                  PopupMenuItem(value: 'up', enabled: index > 0, child: const Text('Move up')),
-                  PopupMenuItem(value: 'down', enabled: index < count - 1, child: const Text('Move down')),
-                  const PopupMenuItem(value: 'remove', child: Text('Remove exercise')),
+                  const PopupMenuItem(value: 'edit', child: T('Edit sets and targets')),
+                  PopupMenuItem(value: 'up', enabled: index > 0, child: const T('Move up')),
+                  PopupMenuItem(value: 'down', enabled: index < count - 1, child: const T('Move down')),
+                  const PopupMenuItem(value: 'remove', child: T('Remove exercise')),
                 ],
               ),
             ],
@@ -451,7 +452,7 @@ class ExerciseLogBlock extends StatelessWidget {
                 Text(s.summary(maxes), style: TextStyle(fontSize: 13, color: p.muted, fontFeatures: kTabular)),
                 if (s.cue.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  Text(s.cue, style: TextStyle(fontSize: 12.5, color: p.muted, fontStyle: FontStyle.italic)),
+                  Text(tr(context, s.cue), style: TextStyle(fontSize: 12.5, color: p.muted, fontStyle: FontStyle.italic)),
                 ],
                 if (s.barbell && weights.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -473,7 +474,7 @@ class ExerciseLogBlock extends StatelessWidget {
                     child: Builder(builder: (context) {
                       final t = i < s.plan.length ? s.plan[i] : PlannedSet();
                       final v = i < s.log.length ? s.log[i] : LoggedSet();
-                      final label = t.label.isNotEmpty ? t.label : 'Set ${i + 1}';
+                      final label = t.label.isNotEmpty ? tr(context, t.label) : tr(context, 'Set {n}', {'n': i + 1});
                       final kg = s.targetKg(t, maxes);
                       return Row(children: [
                         SizedBox(
@@ -512,14 +513,14 @@ class ExerciseLogBlock extends StatelessWidget {
                       FocusScope.of(context).unfocus();
                       store.fillTargets(workout.id, s.id);
                     },
-                    child: const Text('Fill targets'),
+                    child: const T('Fill targets'),
                   ),
                   OutlinedButton(
                     onPressed: () {
                       FocusScope.of(context).unfocus();
                       store.addLogRow(workout.id, s.id);
                     },
-                    child: const Text('+ Set'),
+                    child: const T('+ Set'),
                   ),
                   if (s.log.length > s.plan.length)
                     OutlinedButton(
@@ -527,7 +528,7 @@ class ExerciseLogBlock extends StatelessWidget {
                         FocusScope.of(context).unfocus();
                         store.removeLogRow(workout.id, s.id);
                       },
-                      child: const Text('− Set'),
+                      child: const T('− Set'),
                     ),
                 ]),
               ],
@@ -583,11 +584,11 @@ class ExerciseLogBlock extends StatelessWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Keep')),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Palette.of(ctx).red, foregroundColor: Colors.white),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Remove'),
+              child: const T('Remove'),
             ),
           ],
         ),
@@ -617,7 +618,7 @@ class WarmupList extends StatelessWidget {
         childrenPadding: const EdgeInsets.only(bottom: 6),
         dense: true,
         visualDensity: VisualDensity.compact,
-        title: Text('Warm-up to ${fmt(top)} kg',
+        title: Text(tr(context, 'Warm-up to {n} kg', {'n': fmt(top)}),
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: p.blue)),
         children: [
           for (final (kg, reps) in ramp)
@@ -640,7 +641,19 @@ class RestBar extends StatefulWidget {
   final int total;
   final void Function(int seconds) onAdjust;
   final VoidCallback onClose;
-  const RestBar({super.key, required this.end, required this.total, required this.onAdjust, required this.onClose});
+  final String title;
+  final String doneTitle;
+  final String doneText;
+  const RestBar({
+    super.key,
+    required this.end,
+    required this.total,
+    required this.onAdjust,
+    required this.onClose,
+    this.title = 'REST',
+    this.doneTitle = 'REST DONE',
+    this.doneText = 'Next set',
+  });
 
   @override
   State<RestBar> createState() => _RestBarState();
@@ -707,8 +720,8 @@ class _RestBarState extends State<RestBar> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(done ? 'REST DONE' : 'REST', style: eyebrowStyle(context, color: Colors.white70)),
-                      Text(done ? 'Next set' : fmtClock(left),
+                      Text(done ? widget.doneTitle : widget.title, style: eyebrowStyle(context, color: Colors.white70)),
+                      Text(done ? widget.doneText : fmtClock(left),
                           style: const TextStyle(
                               fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white, fontFeatures: kTabular)),
                     ],
@@ -738,7 +751,7 @@ class _RestBarState extends State<RestBar> {
             minimumSize: const Size(48, 40),
           ),
           onPressed: onTap,
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+          child: Text(tr(context, label), style: const TextStyle(fontWeight: FontWeight.w800)),
         ),
       );
 }
@@ -771,7 +784,7 @@ class _ReadinessSheetState extends State<_ReadinessSheet> {
   Widget _scale(String label, String low, String high, int value, void Function(int) set) {
     final p = Palette.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label.toUpperCase(), style: eyebrowStyle(context)),
+      Text(tr(context, label).toUpperCase(), style: eyebrowStyle(context)),
       const SizedBox(height: 6),
       SegmentedButton<int>(
         showSelectedIcon: false,
@@ -802,12 +815,12 @@ class _ReadinessSheetState extends State<_ReadinessSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('READINESS CHECK', style: headingStyle(context, size: 20)),
+          T('READINESS CHECK', style: headingStyle(context, size: 20)),
           const SizedBox(height: 2),
-          Text('Ten seconds before you train. It helps pick today\'s loads and builds your history.',
+          T('Ten seconds before you train. It helps pick today\'s loads and builds your history.',
               style: TextStyle(color: p.muted, fontSize: 12.5)),
           const SizedBox(height: 14),
-          Text('SLEEP LAST NIGHT: ${fmt(r.sleepHours)} H', style: eyebrowStyle(context)),
+          Text(tr(context, 'SLEEP LAST NIGHT: {n} H', {'n': fmt(r.sleepHours)}), style: eyebrowStyle(context)),
           Slider(
             value: r.sleepHours,
             min: 3,
@@ -833,15 +846,15 @@ class _ReadinessSheetState extends State<_ReadinessSheet> {
               contentPadding: EdgeInsets.zero,
               value: useSuggestion,
               onChanged: (v) => setState(() => useSuggestion = v),
-              title: Text('Make main lifts ${((1 - scale) * 100).round()}% lighter today'),
+              title: Text(tr(context, 'Make main lifts {n}% lighter today', {'n': ((1 - scale) * 100).round()})),
             ),
           const SizedBox(height: 10),
           Row(children: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Skip')),
+            TextButton(onPressed: () => Navigator.pop(context), child: const T('Skip')),
             const Spacer(),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow, size: 18),
-              label: const Text('Start workout'),
+              label: const T('Start workout'),
               onPressed: () => Navigator.pop<ReadinessResult>(
                 context,
                 (readiness: r, scale: scale < 1.0 && useSuggestion ? scale : 1.0),
@@ -861,12 +874,12 @@ Future<List<Adjustment>> showAdjustmentDialog(BuildContext context, List<Adjustm
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(
-        title: const Text('Adjust your next weeks?'),
+        title: const T('Adjust your next weeks?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Based on how hard your heaviest sets felt today:'),
+            const T('Based on how hard your heaviest sets felt today:'),
             const SizedBox(height: 8),
             for (final a in list)
               CheckboxListTile(
@@ -879,12 +892,12 @@ Future<List<Adjustment>> showAdjustmentDialog(BuildContext context, List<Adjustm
                 subtitle: Text(a.reason),
               ),
             const SizedBox(height: 4),
-            Text('You can undo these on the Program tab.', style: TextStyle(color: Palette.of(ctx).muted, fontSize: 12)),
+            T('You can undo these on the Program tab.', style: TextStyle(color: Palette.of(ctx).muted, fontSize: 12)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep the plan')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Apply')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const T('Keep the plan')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const T('Apply')),
         ],
       ),
     ),
