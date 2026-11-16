@@ -179,6 +179,96 @@ double? dotsPoints(double total, double bodyweight, {bool female = false}) {
   return total * 500 / den;
 }
 
+/// Wilks points: total × 500 / polynomial (original, 1990s) or total × 600 /
+/// polynomial (Wilks 2020). Bodyweight is held inside the range each formula was fitted on.
+double? wilksPoints(double total, double bodyweight, {bool female = false, bool v2020 = false}) {
+  if (total <= 0 || bodyweight <= 0) return null;
+  final List<double> c;
+  final double lo, hi, k;
+  if (v2020) {
+    c = female
+        ? [-125.4255398, 13.71219419, -0.03307250631, -0.001050400051, 9.38773881462799e-06, -2.3334613884954e-08]
+        : [47.46178854, 8.472061379, 0.07369410346, -0.001395833811, 7.07665973070743e-06, -1.20804336482315e-08];
+    lo = 40;
+    hi = female ? 150.95 : 200.95;
+    k = 600;
+  } else {
+    c = female
+        ? [594.31747775582, -27.23842536447, 0.82112226871, -0.00930733913, 4.731582e-05, -9.054e-08]
+        : [-216.0475144, 16.2606339, -0.002388645, -0.00113732, 7.01863e-06, -1.291e-08];
+    lo = female ? 26.51 : 40;
+    hi = female ? 154.53 : 201.9;
+    k = 500;
+  }
+  final x = bodyweight.clamp(lo, hi).toDouble();
+  var den = 0.0;
+  var xp = 1.0;
+  for (final v in c) {
+    den += v * xp;
+    xp *= x;
+  }
+  return total * k / den;
+}
+
+// ---------- federations ----------
+
+/// Score formulas a federation can use to rank lifters across classes.
+const kScoreFormulas = ['gl', 'dots', 'wilks', 'wilks2020'];
+const kScoreNames = {'gl': 'GL points', 'dots': 'DOTS', 'wilks': 'Wilks', 'wilks2020': 'Wilks 2020'};
+
+/// A federation's weight classes and the formula it uses for best lifter.
+class Federation {
+  final String id;
+  final String name;
+  final List<String> men;
+  final List<String> women;
+  final String score;
+  final String note;
+  const Federation(this.id, this.name, this.men, this.women, this.score, this.note);
+
+  List<String> classes(bool female) => female ? women : men;
+}
+
+const _traditionalMen = ['52', '56', '60', '67.5', '75', '82.5', '90', '100', '110', '125', '140', '140+'];
+
+/// Classes and best-lifter formulas from each federation's current rulebook.
+const kFederations = [
+  Federation('ipf', 'IPF and affiliates', kMenClasses, kWomenClasses, 'gl',
+      'IPF, Powerlifting America, British Powerlifting and other IPF members. Best lifter by IPF GL points.'),
+  Federation('usapl', 'USAPL', _traditionalMen,
+      ['44', '48', '52', '56', '60', '65', '70', '75', '82.5', '90', '100', '100+'], 'dots',
+      'USA Powerlifting rulebook 2026: best lifter by DOTS.'),
+  Federation('uspa', 'USPA / IPL', _traditionalMen,
+      ['44', '48', '52', '56', '60', '67.5', '75', '82.5', '90', '100', '110', '110+'], 'dots',
+      'USPA rulebook: placings by DOTS.'),
+  Federation('wrpf', 'WRPF', _traditionalMen,
+      ['44', '48', '52', '56', '60', '67.5', '75', '82.5', '90', '90+'], 'wilks',
+      'WRPF rulebook: best lifter by Wilks.'),
+];
+
+Federation federationById(String id) =>
+    kFederations.firstWhere((f) => f.id == id, orElse: () => kFederations.first);
+
+/// The class a lifter fits in [classes]: the lightest class whose limit is at or
+/// above [kg] (a bodyweight or an old class limit), or the top + class.
+String fitClass(List<String> classes, double? kg) {
+  if (kg == null) return classes[classes.length ~/ 2];
+  for (final c in classes) {
+    final lim = double.tryParse(c);
+    if (lim != null && kg <= lim + 1e-9) return c;
+  }
+  return classes.last;
+}
+
+/// Points with the chosen formula ('gl', 'dots', 'wilks', 'wilks2020').
+double? scorePoints(String formula, double total, double bodyweight, {bool female = false, bool equipped = false}) =>
+    switch (formula) {
+      'dots' => dotsPoints(total, bodyweight, female: female),
+      'wilks' => wilksPoints(total, bodyweight, female: female),
+      'wilks2020' => wilksPoints(total, bodyweight, female: female, v2020: true),
+      _ => glPoints(total, bodyweight, female: female, equipped: equipped),
+    };
+
 /// Where a value sits in a sorted list of 99 percentile cut points (p1..p99).
 /// Returns the share of lifters below it, 0–100.
 double percentileOf(double value, List<double> cuts) {

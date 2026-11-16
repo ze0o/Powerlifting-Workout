@@ -430,7 +430,9 @@ class Profile {
   String sex; // 'male' | 'female'
   double heightCm;
   String division; // 'classic' | 'equipped'
-  String weightClass; // e.g. '105', '120+'
+  String weightClass; // e.g. '105', '120+', '82.5'
+  String federation; // 'ipf' | 'usapl' | 'uspa' | 'wrpf' (see kFederations)
+  String score; // '' = the federation's own formula, or 'gl' | 'dots' | 'wilks' | 'wilks2020'
   Map<String, double> maxes;
   Map<String, List<double>> goals; // [target, stretch]
   List<double> bwTarget; // meet weight range [low, high]
@@ -441,6 +443,8 @@ class Profile {
     required this.heightCm,
     required this.division,
     required this.weightClass,
+    this.federation = 'ipf',
+    this.score = '',
     required this.maxes,
     required this.goals,
     required this.bwTarget,
@@ -449,6 +453,11 @@ class Profile {
   bool get female => sex == 'female';
   bool get equipped => division == 'equipped';
   double? get classLimit => weightClass.endsWith('+') ? null : double.tryParse(weightClass);
+  Federation get fed => federationById(federation);
+  List<String> get classes => fed.classes(female);
+
+  /// The formula used for "points" across the app.
+  String get scoreFormula => kScoreFormulas.contains(score) ? score : fed.score;
 
   factory Profile.defaults() => Profile(
         name: '',
@@ -471,6 +480,8 @@ class Profile {
         'height': heightCm,
         'division': division,
         'class': weightClass,
+        'fed': federation,
+        if (score.isNotEmpty) 'score': score,
         'maxes': maxes,
         'goals': goals,
         'bwTarget': bwTarget,
@@ -495,6 +506,8 @@ class Profile {
       heightCm: jd(j['height']) ?? d.heightCm,
       division: js(j['division']) == 'equipped' ? 'equipped' : 'classic',
       weightClass: js(j['class']).isEmpty ? d.weightClass : js(j['class']),
+      federation: kFederations.any((f) => f.id == js(j['fed'])) ? js(j['fed']) : 'ipf',
+      score: kScoreFormulas.contains(js(j['score'])) ? js(j['score']) : '',
       maxes: maxes,
       goals: goals,
       bwTarget: bw.length == 2 ? bw : d.bwTarget,

@@ -64,7 +64,11 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final lifts = [parseNum(sq.text), parseNum(bp.text), parseNum(dl.text)];
     final total = lifts.every((x) => x != null) ? lifts.fold<double>(0, (a, x) => a + x!) : null;
     final gl = (total != null && b != null) ? glPoints(total, b, female: female, equipped: equipped) : null;
-    final dots = (total != null && b != null) ? dotsPoints(total, b, female: female) : null;
+    final mine = store.profile.scoreFormula;
+    final all = {
+      for (final f in kScoreFormulas)
+        f: (total != null && b != null) ? scorePoints(f, total, b, female: female, equipped: equipped) : null
+    };
     final sameDivision = female == store.profile.female && equipped == store.profile.equipped;
     final cls = b == null ? null : _classFor(b, female);
     Standing? rank(String metric, double? v) =>
@@ -114,10 +118,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  T('GL POINTS CALCULATOR', style: headingStyle(context, size: 18)),
+                  T('POINTS CALCULATOR', style: headingStyle(context, size: 18)),
                   const SizedBox(height: 4),
-                  T('The IPF formula that ranks lifters of different bodyweights against each other.',
-                      style: TextStyle(color: p.muted, fontSize: 12.5)),
+                  Text(
+                    tr(context,
+                        'Formulas that rank lifters of different bodyweights against each other. {fed} uses {score}; change your federation in the Athlete tab.',
+                        {'fed': store.profile.fed.name, 'score': tr(context, kScoreNames[store.profile.fed.score]!)}),
+                    style: TextStyle(color: p.muted, fontSize: 12.5),
+                  ),
                   const SizedBox(height: 12),
                   SegmentedButton<bool>(
                     segments: const [
@@ -160,15 +168,20 @@ class _ToolsScreenState extends State<ToolsScreen> {
                         ]),
                       ),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        T('GL POINTS', style: eyebrowStyle(context, color: p.navyMuted)),
-                        Text(gl == null ? '—' : gl.toStringAsFixed(2),
+                        T(kScoreNames[mine]!.toUpperCase(), style: eyebrowStyle(context, color: p.navyMuted)),
+                        Text(all[mine] == null ? '—' : all[mine]!.toStringAsFixed(2),
                             style: TextStyle(
                                 fontSize: 24, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
-                        Text('DOTS ${dots == null ? '—' : dots.toStringAsFixed(1)}',
-                            style: TextStyle(color: p.navyMuted, fontWeight: FontWeight.w700, fontFeatures: kTabular)),
                       ]),
                     ]),
                   ),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 16, runSpacing: 6, children: [
+                    for (final f in kScoreFormulas)
+                      if (f != mine)
+                        Text('${tr(context, kScoreNames[f]!)} ${all[f] == null ? '—' : all[f]!.toStringAsFixed(1)}',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontFeatures: kTabular)),
+                  ]),
                   const SizedBox(height: 10),
                   T('WHERE YOU STAND', style: eyebrowStyle(context)),
                   const SizedBox(height: 4),

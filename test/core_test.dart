@@ -305,4 +305,61 @@ void main() {
       expect(c.body, 'Great depth');
     });
   });
+
+  group('federations and Wilks', () {
+    test('Wilks matches published coefficients', () {
+      // Original Wilks: coefficient 0.6086 at 100 kg (men).
+      expect(wilksPoints(700, 100)!, closeTo(426.0, 0.1));
+      expect(wilksPoints(700, 100, v2020: true)!, closeTo(510.6, 0.1));
+      expect(wilksPoints(400, 60, female: true)!, closeTo(446.0, 0.1));
+      expect(wilksPoints(400, 60, female: true, v2020: true)!, closeTo(527.6, 0.1));
+      // Bodyweight is clamped to the fitted range.
+      expect(wilksPoints(700, 250), wilksPoints(700, 201.9));
+      expect(wilksPoints(0, 100), isNull);
+    });
+
+    test('scorePoints picks the formula', () {
+      expect(scorePoints('gl', 600, 93), glPoints(600, 93));
+      expect(scorePoints('dots', 600, 93), dotsPoints(600, 93));
+      expect(scorePoints('wilks2020', 600, 93), wilksPoints(600, 93, v2020: true));
+    });
+
+    test('every federation has sorted classes ending in a + class', () {
+      for (final f in kFederations) {
+        for (final list in [f.men, f.women]) {
+          expect(list.last.endsWith('+'), isTrue, reason: f.id);
+          final limits = [for (final c in list.take(list.length - 1)) double.parse(c)];
+          expect(limits, [...limits]..sort(), reason: f.id);
+        }
+        expect(kScoreFormulas, contains(f.score));
+      }
+      expect(federationById('usapl').women, contains('65'));
+      expect(federationById('wrpf').women.last, '90+');
+      expect(federationById('nope').id, 'ipf');
+    });
+
+    test('fitClass picks the lightest class that fits', () {
+      final men = federationById('usapl').men;
+      expect(fitClass(men, 105), '110');
+      expect(fitClass(men, 82.5), '82.5');
+      expect(fitClass(men, 150), '140+');
+      expect(fitClass(kMenClasses, 100), '105');
+    });
+
+    test('profile keeps federation and formula through JSON', () {
+      final p = Profile.defaults()
+        ..federation = 'wrpf'
+        ..weightClass = '110';
+      final back = Profile.fromJson(p.toJson());
+      expect(back.federation, 'wrpf');
+      expect(back.scoreFormula, 'wilks');
+      expect(back.score, '');
+      final q = Profile.fromJson({...p.toJson(), 'score': 'dots'});
+      expect(q.scoreFormula, 'dots');
+      // Old backups have no federation: IPF and GL.
+      final old = Profile.fromJson({'sex': 'male', 'class': '105'});
+      expect(old.federation, 'ipf');
+      expect(old.scoreFormula, 'gl');
+    });
+  });
 }

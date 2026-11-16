@@ -1219,6 +1219,14 @@ class AppStore extends ChangeNotifier {
   double? gl(double total, double? bw) =>
       bw == null ? null : glPoints(total, bw, female: profile.female, equipped: profile.equipped);
 
+  /// Points with this lifter's formula (their federation's, unless they chose another).
+  double? points(double total, double? bw) => bw == null
+      ? null
+      : scorePoints(profile.scoreFormula, total, bw, female: profile.female, equipped: profile.equipped);
+
+  /// Name of this lifter's formula, e.g. 'GL points' or 'DOTS'.
+  String get pointsName => kScoreNames[profile.scoreFormula] ?? 'GL points';
+
   static String? _fmtRows(List<LoggedSet> rows) {
     final list = rows.where((x) => x.w.trim().isNotEmpty || x.r.trim().isNotEmpty).toList();
     if (list.isEmpty) return null;

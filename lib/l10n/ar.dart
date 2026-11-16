@@ -769,4 +769,22 @@ const Map<String, String> kAr = {
   'That is your own coach code.': 'هذا رمز المدرّب الخاص بك.',
   'Coach mode is not set up on the server yet. Run supabase/migrations/0006_coach_mode.sql in the Supabase SQL editor.': 'وضع المدرّب غير مُعدّ على الخادم بعد. شغّل supabase/migrations/0006_coach_mode.sql في محرر SQL في Supabase.',
   'Could not reach the server. Check your internet connection.': 'تعذّر الوصول إلى الخادم. تحقق من اتصالك بالإنترنت.',
+
+  // ---------- federations and Wilks ----------
+  'Wilks': 'ويلكس',
+  'Wilks 2020': 'ويلكس 2020',
+  'WILKS': 'ويلكس',
+  'WILKS 2020': 'ويلكس 2020',
+  'POINTS CALCULATOR': 'حاسبة النقاط',
+  'Formulas that rank lifters of different bodyweights against each other. {fed} uses {score}; change your federation in the Athlete tab.': 'معادلات تقارن بين الرياضيين مختلفي الأوزان. يعتمد {fed} على {score}؛ غيّر اتحادك من تبويب الرياضي.',
+  'Log your bodyweight to see live points.': 'سجّل وزنك لترى نقاطك الحالية.',
+  'Federation': 'الاتحاد',
+  'Points formula': 'معادلة النقاط',
+  '{name} (federation default)': '{name} (افتراضي الاتحاد)',
+  'The class is used for the Body and Meet tabs; the formula for your points everywhere.': 'تُستخدم الفئة في تبويبي الجسم والبطولة، والمعادلة لحساب نقاطك في كل مكان.',
+  'IPF, Powerlifting America, British Powerlifting and other IPF members. Best lifter by IPF GL points.': 'الاتحاد الدولي (IPF) وأعضاؤه مثل Powerlifting America وBritish Powerlifting. أفضل رباع بنقاط IPF GL.',
+  'USA Powerlifting rulebook 2026: best lifter by DOTS.': 'قوانين USA Powerlifting لعام 2026: أفضل رباع بمعادلة DOTS.',
+  'USPA rulebook: placings by DOTS.': 'قوانين USPA: الترتيب بمعادلة DOTS.',
+  'WRPF rulebook: best lifter by Wilks.': 'قوانين WRPF: أفضل رباع بمعادلة ويلكس.',
+  'Not sure? Pick IPF: it is the biggest drug-tested federation. You can change any of this later in the Athlete tab.': 'غير متأكد؟ اختر IPF، فهو أكبر اتحاد خاضع لفحص المنشطات. يمكنك تغيير أي من هذا لاحقاً من تبويب الرياضي.',
 };

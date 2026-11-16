@@ -23,6 +23,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String sex = 'male';
   String division = 'classic';
   String weightClass = '105';
+  String federation = 'ipf';
   String templateId = 'meet-prep-8';
   String start = todayIso();
   int customWeeks = 8;
@@ -36,7 +37,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   TextEditingController _ctl(String k, [String initial = '']) =>
       c.putIfAbsent(k, () => TextEditingController(text: initial));
 
-  List<String> get _classes => sex == 'female' ? kWomenClasses : kMenClasses;
+  List<String> get _classes => federationById(federation).classes(sex == 'female');
+
+  void _remapClass() {
+    if (!_classes.contains(weightClass)) {
+      weightClass = fitClass(_classes, double.tryParse(weightClass.replaceAll('+', '')));
+    }
+  }
 
   @override
   void dispose() {
@@ -84,6 +91,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       heightCm: parseNum(_ctl('height').text) ?? 175,
       division: division,
       weightClass: weightClass,
+      federation: federation,
       maxes: maxes,
       goals: goals,
       bwTarget: [lo, hi],
@@ -178,7 +186,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           selected: {sex},
           onSelectionChanged: (s) => setState(() {
             sex = s.first;
-            if (!_classes.contains(weightClass)) weightClass = _classes[5];
+            _remapClass();
           }),
         ),
         const SizedBox(height: 10),
@@ -198,7 +206,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ]),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _classes.contains(weightClass) ? weightClass : _classes[5],
+          value: federation,
+          isExpanded: true,
+          decoration: const InputDecoration(label: T('Federation')),
+          items: [for (final f in kFederations) DropdownMenuItem(value: f.id, child: Text(f.name))],
+          onChanged: (v) => setState(() {
+            federation = v ?? federation;
+            _remapClass();
+          }),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          key: ValueKey('class-$federation-$sex'),
+          value: _classes.contains(weightClass) ? weightClass : fitClass(_classes, null),
           decoration: const InputDecoration(label: T('Weight class you want to compete in')),
           items: [
             for (final k in _classes) DropdownMenuItem(value: k, child: Text(k.endsWith('+') ? '$k kg' : '−$k kg')),
@@ -206,7 +226,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           onChanged: (v) => setState(() => weightClass = v ?? weightClass),
         ),
         const SizedBox(height: 4),
-        T('IPF open classes. You can change any of this later in the Athlete tab.',
+        T('Not sure? Pick IPF: it is the biggest drug-tested federation. You can change any of this later in the Athlete tab.',
             style: TextStyle(color: p.muted, fontSize: 12)),
       ];
 

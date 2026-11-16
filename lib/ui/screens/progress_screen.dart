@@ -68,9 +68,11 @@ class TotalCard extends StatelessWidget {
     final goalTotal = kLifts.map((l) => pr.goals[l]?[0] ?? 0.0).reduce((a, b) => a + b);
     final bw = store.latestWeight;
     final meetBw = (pr.bwTarget[0] + pr.bwTarget[1]) / 2;
-    final glNow = total == null ? null : store.gl(total, bw);
-    final glStart = store.gl(startTotal, bw ?? meetBw);
-    final glGoal = store.gl(goalTotal, meetBw);
+    // Points with the lifter's federation formula (GL for the IPF, DOTS for USAPL, ...).
+    final glNow = total == null ? null : store.points(total, bw);
+    final glStart = store.points(startTotal, bw ?? meetBw);
+    final glGoal = store.points(goalTotal, meetBw);
+    final short = tr(context, kScoreNames[pr.scoreFormula]!);
     final cls = pr.weightClass.endsWith('+') ? pr.weightClass : '−${pr.weightClass}';
     final division = '${pr.equipped ? 'EQUIPPED' : 'CLASSIC'} · ${pr.female ? 'WOMEN' : 'MEN'} $cls';
 
@@ -96,7 +98,7 @@ class TotalCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  T('GL POINTS', style: eyebrowStyle(context, color: p.navyMuted)),
+                  T(store.pointsName.toUpperCase(), style: eyebrowStyle(context, color: p.navyMuted)),
                   Text(glNow == null ? '—' : glNow.toStringAsFixed(1),
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
                 ],
@@ -122,14 +124,14 @@ class TotalCard extends StatelessWidget {
           Container(height: 1, color: Colors.white.withAlpha(30)),
           const SizedBox(height: 10),
           Text(
-            'Start ${fmt(startTotal)} kg${glStart == null ? '' : ' (${glStart.toStringAsFixed(1)} GL)'}  ·  '
-            'Goal ${fmt(goalTotal)} kg${glGoal == null ? '' : ' (${glGoal.toStringAsFixed(1)} GL at ${fmt1(meetBw)} kg)'}',
+            'Start ${fmt(startTotal)} kg${glStart == null ? '' : ' (${glStart.toStringAsFixed(1)} $short)'}  ·  '
+            'Goal ${fmt(goalTotal)} kg${glGoal == null ? '' : ' (${glGoal.toStringAsFixed(1)} $short at ${fmt1(meetBw)} kg)'}',
             style: TextStyle(color: p.navyMuted, fontSize: 12.5, fontFeatures: kTabular),
           ),
           if (bw == null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: T('Log your bodyweight to see live GL points.', style: TextStyle(color: p.navyMuted, fontSize: 12.5)),
+              child: T('Log your bodyweight to see live points.', style: TextStyle(color: p.navyMuted, fontSize: 12.5)),
             ),
         ],
       ),

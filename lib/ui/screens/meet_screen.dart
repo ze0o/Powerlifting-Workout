@@ -41,6 +41,15 @@ String? _standingLine(AppStore store, String metric, double? value) {
       '(${fmtInt(s.n)} lifters)';
 }
 
+/// A second score next to the lifter's own: GL when they use another formula, else DOTS.
+(String, double?) _otherScore(AppStore store, double? total, double? bw) {
+  final f = store.profile.scoreFormula == 'gl' ? 'dots' : 'gl';
+  final v = (total == null || bw == null)
+      ? null
+      : scorePoints(f, total, bw, female: store.profile.female, equipped: store.profile.equipped);
+  return (kScoreNames[f]!, v);
+}
+
 class MeetScreen extends StatelessWidget {
   const MeetScreen({super.key});
 
@@ -300,7 +309,8 @@ class _AttemptsPanel extends StatelessWidget {
     final bw = meet.weighInKg ?? store.profile.bwTarget[1];
     final third = meet.plannedTotal(2), opener = meet.plannedTotal(0);
     final gl = third == null ? null : store.gl(third, bw);
-    final dots = third == null ? null : dotsPoints(third, bw, female: store.profile.female);
+    final pts = third == null ? null : store.points(third, bw);
+    final other = _otherScore(store, third, bw);
     final standing = _standingLine(store, 'gl', gl);
     final k = 'att-${meet.id}-${store.revision}';
     return Panel(
@@ -362,8 +372,8 @@ class _AttemptsPanel extends StatelessWidget {
             ]),
             const SizedBox(height: 10),
             Row(children: [
-              Expanded(child: StatTile(label: 'GL points', value: gl == null ? '—' : gl.toStringAsFixed(1))),
-              Expanded(child: StatTile(label: 'DOTS', value: dots == null ? '—' : dots.toStringAsFixed(1))),
+              Expanded(child: StatTile(label: store.pointsName, value: pts == null ? '—' : pts.toStringAsFixed(1))),
+              Expanded(child: StatTile(label: other.$1, value: other.$2 == null ? '—' : other.$2!.toStringAsFixed(1))),
             ]),
             const SizedBox(height: 6),
             Text('At ${fmt(bw)} kg bodyweight${meet.weighInKg == null ? ' (top of your meet range)' : ''}.',
@@ -557,7 +567,8 @@ class _MeetDayScreenState extends State<MeetDayScreen> {
     final bw = meet.weighInKg;
     final total = meet.total;
     final gl = (total == null || bw == null) ? null : store.gl(total, bw);
-    final dots = (total == null || bw == null) ? null : dotsPoints(total, bw, female: store.profile.female);
+    final pts = (total == null || bw == null) ? null : store.points(total, bw);
+    final other = _otherScore(store, total, bw);
     final bombed = [for (final l in kLifts) if (meet.attempts[l]!.every((a) => a.decided && !a.good)) l];
     final standing = _standingLine(store, 'gl', gl);
     final k = 'md-${meet.id}-${store.revision}';
@@ -609,8 +620,9 @@ class _MeetDayScreenState extends State<MeetDayScreen> {
                     ]),
                   ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    T('GL · DOTS', style: eyebrowStyle(context, color: p.navyMuted)),
-                    Text('${gl == null ? '—' : gl.toStringAsFixed(1)} · ${dots == null ? '—' : dots.toStringAsFixed(1)}',
+                    Text('${tr(context, store.pointsName).toUpperCase()} · ${tr(context, other.$1).toUpperCase()}',
+                        style: eyebrowStyle(context, color: p.navyMuted)),
+                    Text('${pts == null ? '—' : pts.toStringAsFixed(1)} · ${other.$2 == null ? '—' : other.$2!.toStringAsFixed(1)}',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
                   ]),
                 ]),

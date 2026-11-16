@@ -1,4 +1,4 @@
-# Meet Prep Log v2.6
+# Meet Prep Log v2.7
 
 A powerlifting training log for Android, built with Flutter. It includes programs for beginner, intermediate and advanced lifters, plus a blank builder. Every workout can be edited. You log sets with RPE and referee lights, and the app tracks estimated maxes, your total with IPF GL points, and body composition. Coaches can follow their athletes, comment on workouts and send programs.
 
@@ -40,6 +40,24 @@ dart run flutter_launcher_icons
 ```
 
 This writes `android/app/src/main/res/mipmap-*` and `mipmap-anydpi-v26/ic_launcher.xml`. To change the icon, replace the three PNGs in `assets/icon/` (keep the plate inside the middle 61% of `foreground.png`, or launchers will crop it) and run the command again. `adaptive_icon_foreground_inset: 0` stops the tool adding extra padding, because the foreground already has it. iOS is off (`ios: false`) until there is an `ios/` folder.
+
+## What's new in v2.7: federations and Wilks
+
+Pick your federation in **Athlete tab → Athlete → Federation** (also asked during onboarding). It sets your weight classes and the formula used for your points.
+
+| Federation | Men (kg) | Women (kg) | Points formula | Source |
+|---|---|---|---|---|
+| IPF and affiliates | 59, 66, 74, 83, 93, 105, 120, 120+ | 47, 52, 57, 63, 69, 76, 84, 84+ | IPF GL | IPF technical rules |
+| USAPL | 52, 56, 60, 67.5, 75, 82.5, 90, 100, 110, 125, 140, 140+ | 44, 48, 52, 56, 60, 65, 70, 75, 82.5, 90, 100, 100+ | DOTS | [USAPL rulebook v2026.2](https://www.usapowerlifting.com/assets/general/PDFs/USAPL-Rulebook-v2026.2.pdf), rules 1.8.2–1.8.3 |
+| USPA / IPL | same as USAPL men | 44, 48, 52, 56, 60, 67.5, 75, 82.5, 90, 100, 110, 110+ | DOTS | [USPA rulebook](https://uspa.net/rulebook), 1.3.1 and 1.6.1 |
+| WRPF | same as USAPL men | 44, 48, 52, 56, 60, 67.5, 75, 82.5, 90, 90+ | Wilks | WRPF rulebook, 1.4 and 1.5.4 |
+
+- **Points formula** can be changed under the federation (for example, use DOTS while in an IPF federation). The choice shows on the Progress total card, the Meet tab's attempt plan, meet-day mode and the coach's overview, with a second score (GL, or DOTS when you use GL) next to it.
+- **Wilks** (original, ×500) and **Wilks 2020** (×600) are new. Bodyweight is held to the range each formula was fitted on (original: men 40–201.9 kg, women 26.51–154.53 kg; 2020: 40–200.95 / 40–150.95 kg). Checked against the published coefficient (0.6086 at 100 kg, men): 700 kg total → 426.0 Wilks.
+- **Tools → Points calculator** shows all four scores at once.
+- Switching federation or sex keeps your class if it exists, otherwise picks the lightest class that fits (for example IPF −105 → USAPL −110).
+- **Where you stand** still compares you with **IPF** results (OpenIPF data). For other federations it uses "all classes" because the class limits differ.
+- Old backups and synced data load as IPF with GL, so nothing changes until you pick another federation. The federation is saved in your synced data (no database change needed).
 
 ## What's new in v2.6: coach mode
 

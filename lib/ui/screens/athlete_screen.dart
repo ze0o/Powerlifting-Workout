@@ -27,6 +27,8 @@ class _AthleteScreenState extends State<AthleteScreen> {
   String sex = 'male';
   String division = 'classic';
   String weightClass = '105';
+  String federation = 'ipf';
+  String score = '';
   int loadedRevision = -1;
 
   TextEditingController _ctl(String k) => c.putIfAbsent(k, () => TextEditingController());
@@ -44,6 +46,8 @@ class _AthleteScreenState extends State<AthleteScreen> {
     sex = pr.sex;
     division = pr.division;
     weightClass = pr.weightClass;
+    federation = pr.federation;
+    score = pr.score == pr.fed.score ? '' : pr.score;
   }
 
   @override
@@ -67,7 +71,14 @@ class _AthleteScreenState extends State<AthleteScreen> {
     super.dispose();
   }
 
-  List<String> get _classes => sex == 'female' ? kWomenClasses : kMenClasses;
+  List<String> get _classes => federationById(federation).classes(sex == 'female');
+
+  /// Keeps the class when it exists in the new list, else picks the nearest one.
+  void _remapClass() {
+    if (!_classes.contains(weightClass)) {
+      weightClass = fitClass(_classes, double.tryParse(weightClass.replaceAll('+', '')));
+    }
+  }
 
   void _save(AppStore store) {
     final maxes = <String, double>{};
@@ -89,7 +100,9 @@ class _AthleteScreenState extends State<AthleteScreen> {
       sex: sex,
       heightCm: h,
       division: division,
-      weightClass: _classes.contains(weightClass) ? weightClass : _classes[5],
+      weightClass: _classes.contains(weightClass) ? weightClass : fitClass(_classes, double.tryParse(weightClass.replaceAll('+', ''))),
+      federation: federation,
+      score: score,
       maxes: maxes,
       goals: goals,
       bwTarget: bw,
@@ -152,7 +165,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         onSelectionChanged: (s) => setState(() {
                           sex = s.first;
                           _dirty = true;
-                          if (!_classes.contains(weightClass)) weightClass = _classes[5];
+                          _remapClass();
                         }),
                       ),
                       const SizedBox(height: 10),
@@ -168,10 +181,27 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         }),
                       ),
                       const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: federation,
+                        isExpanded: true,
+                        decoration: const InputDecoration(label: T('Federation')),
+                        items: [
+                          for (final f in kFederations) DropdownMenuItem(value: f.id, child: Text(f.name)),
+                        ],
+                        onChanged: (v) => setState(() {
+                          federation = v ?? federation;
+                          _dirty = true;
+                          _remapClass();
+                          // The federation's own formula is the "default" entry, not a separate one.
+                          if (score == federationById(federation).score) score = '';
+                        }),
+                      ),
+                      const SizedBox(height: 12),
                       Row(children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _classes.contains(weightClass) ? weightClass : _classes[5],
+                            key: ValueKey('class-$federation-$sex'),
+                            value: _classes.contains(weightClass) ? weightClass : fitClass(_classes, null),
                             decoration: const InputDecoration(label: T('Weight class')),
                             items: [
                               for (final k in _classes)
@@ -186,9 +216,33 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         const SizedBox(width: 10),
                         Expanded(child: _num('height', 'Height', suffix: 'cm')),
                       ]),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('score-$federation'),
+                        value: score,
+                        isExpanded: true,
+                        decoration: const InputDecoration(label: T('Points formula')),
+                        items: [
+                          DropdownMenuItem(
+                            value: '',
+                            child: Text(tr(context, '{name} (federation default)',
+                                {'name': tr(context, kScoreNames[federationById(federation).score]!)})),
+                          ),
+                          for (final f in kScoreFormulas)
+                            if (f != federationById(federation).score)
+                              DropdownMenuItem(value: f, child: Text(tr(context, kScoreNames[f]!))),
+                        ],
+                        onChanged: (v) => setState(() {
+                          score = v ?? '';
+                          _dirty = true;
+                        }),
+                      ),
                       const SizedBox(height: 4),
-                      T('IPF open classes. Used for GL points and the Body tab.',
-                          style: TextStyle(color: p.muted, fontSize: 12)),
+                      Text(
+                        '${tr(context, federationById(federation).note)} '
+                        '${tr(context, 'The class is used for the Body and Meet tabs; the formula for your points everywhere.')}',
+                        style: TextStyle(color: p.muted, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),

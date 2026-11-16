@@ -326,7 +326,7 @@ class _CoachOverview extends StatelessWidget {
     // Best estimated max per lift, falling back to the entered max.
     final best = {for (final l in kLifts) l: store.bestOverall(l) ?? pr.maxes[l] ?? 0.0};
     final total = best.values.fold<double>(0, (a, b) => a + b);
-    final gl = store.gl(total, bw);
+    final gl = store.points(total, bw);
 
     // Readiness over the last 7 days.
     final weekAgo = addDays(todayIso(), -7);
@@ -355,7 +355,7 @@ class _CoachOverview extends StatelessWidget {
             const SizedBox(height: 10),
             Wrap(spacing: 22, runSpacing: 12, children: [
               StatTile(label: 'Est. total', value: fmt(total), unit: 'kg'),
-              if (gl != null) StatTile(label: 'GL points', value: fmt1(gl)),
+              if (gl != null) StatTile(label: store.pointsName, value: fmt1(gl)),
               if (bw != null) StatTile(label: 'Bodyweight', value: fmt1(bw), unit: 'kg'),
               if (readiness != null) StatTile(label: 'Readiness (7 days)', value: '$readiness', unit: '/100'),
             ]),

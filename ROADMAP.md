@@ -52,7 +52,7 @@
 - [x] **Meet planner:** meet date, countdown, and lining up the program's peak with it (v2.4).
 - [x] **Attempt selector and meet-day mode** with 3 referee lights, live total, GL, DOTS and an attempt timer (v2.4).
 - [x] **DOTS** added (v2.4).
-- [ ] **More federations:** USAPL, WRPF and other classes, plus Wilks.
+- [x] **More federations:** IPF, USAPL, USPA/IPL and WRPF classes, each with its best-lifter formula, plus Wilks and Wilks 2020 (v2.7). *Still to do: more federations (RPS, SPF, WPC), masters age coefficients, and standings for non-IPF federations.*
 - [x] **Weigh-in plan** for 2-hour and 24-hour weigh-ins (v2.4).
 - [x] **Meet bag checklist** (v2.4).
 
