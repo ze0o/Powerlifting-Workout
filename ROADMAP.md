@@ -58,7 +58,7 @@
 
 ### Phase 4: growth
 - [x] **Accounts and cloud sync** with Supabase: email sign-in, automatic sync, restore on a new phone, analysis tables and views (v2.2).
-- [ ] **Progress prediction in the app:** show the 4-week e1RM forecast from `analysis/progress_model.py` once there are enough lifters.
+- [x] **Progress prediction in the app:** each lift's estimated max in 4 weeks or on meet day, with an 80% range and goal verdict, worked out on the phone from the lifter's own logs (v2.8). *Still to do: use `analysis/progress_model.py` across many lifters once there are enough of them.*
 - [x] **GL standing** against OpenIPF results by sex, division and class (v2.4). Run `analysis/build_standing.py` to load the data.
 - [x] **Coach mode:** a coach builds programs, sends them to athletes, reads their logs, readiness and body data, and comments on workouts (v2.6). *Still to do: coach-only program drafts, group messages, and per-athlete pricing.*
 - [ ] **Video:** attach a set video, frame-by-frame review, bar path, maybe bar speed (VBT).

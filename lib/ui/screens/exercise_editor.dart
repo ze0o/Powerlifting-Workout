@@ -8,6 +8,7 @@ import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../../l10n/l10n.dart';
+import '../motion.dart';
 
 /// What the editor returns.
 class SlotConfig {
@@ -144,7 +145,7 @@ Future<ExerciseDef?> _createExercise(BuildContext context, String initial) async
   var category = 'Other';
   var barbell = false;
   String? pctOf;
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(
@@ -162,14 +163,14 @@ Future<ExerciseDef?> _createExercise(BuildContext context, String initial) async
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: category,
+                initialValue: category,
                 decoration: const InputDecoration(label: T('Category')),
                 items: [for (final c in kCategories) DropdownMenuItem(value: c, child: Text(c))],
                 onChanged: (v) => setS(() => category = v ?? 'Other'),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
-                value: pctOf,
+                initialValue: pctOf,
                 decoration: const InputDecoration(label: T('Load as % of')),
                 items: const [
                   DropdownMenuItem<String?>(value: null, child: T('Nothing (I enter kg)')),
@@ -385,7 +386,7 @@ class _ExerciseConfigScreenState extends State<ExerciseConfigScreen> {
             if (mode == 'pct') ...[
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: pctOf ?? 'squat',
+                initialValue: pctOf ?? 'squat',
                 decoration: InputDecoration(
                   label: T('Percent of'),
                   helperText: max == null ? null : 'Current max: ${fmt(max)} kg. Targets update when your max changes.',

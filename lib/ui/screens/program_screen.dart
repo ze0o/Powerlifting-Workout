@@ -12,6 +12,7 @@ import 'program_picker.dart';
 import 'coach_screen.dart';
 import 'workout_screen.dart';
 import '../../l10n/l10n.dart';
+import '../motion.dart';
 
 class ProgramScreen extends StatelessWidget {
   const ProgramScreen({super.key});
@@ -94,10 +95,15 @@ class ProgramScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16, 6, 16, 6),
             child: Panel(child: T('No workouts this week yet. Add one, then add exercises to it.')),
           ),
-        for (final x in list)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-            child: WorkoutCard(workout: x),
+        // Cards slide in when the week changes (keyed by week and workout).
+        for (final (i, x) in list.indexed)
+          FadeInUp(
+            key: ValueKey('${prog.id}-$w-${x.id}'),
+            index: i,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+              child: WorkoutCard(workout: x),
+            ),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -408,7 +414,7 @@ Future<void> addWorkoutDialog(BuildContext context, int week) async {
   final existing = store.workoutsInWeek(week);
   var date = existing.isEmpty ? store.weekRange(week).$1 : addDays(existing.last.date, 1);
   final ctl = TextEditingController();
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(

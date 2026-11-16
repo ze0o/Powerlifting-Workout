@@ -14,6 +14,7 @@ import 'ui/screens/onboarding_screen.dart';
 import 'ui/screens/program_screen.dart';
 import 'ui/screens/progress_screen.dart';
 import 'ui/theme.dart';
+import 'ui/motion.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +105,17 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    // Cross-fade between loading, onboarding and the app.
+    final stage = !store.loaded ? 0 : (store.needsOnboarding ? 1 : 2);
+    return AnimatedSwitcher(
+      duration: reduceMotion(context) ? Duration.zero : kMotionSlow,
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: KeyedSubtree(key: ValueKey(stage), child: _content(context, store)),
+    );
+  }
+
+  Widget _content(BuildContext context, AppStore store) {
     if (!store.loaded) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -129,7 +141,7 @@ class _HomeShellState extends State<HomeShell> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        body: IndexedStack(index: index, children: screens),
+        body: FadeIndexedStack(index: index, children: screens),
         bottomNavigationBar: NavigationBar(
           selectedIndex: index,
           onDestinationSelected: (i) {

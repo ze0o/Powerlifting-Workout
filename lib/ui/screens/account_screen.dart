@@ -6,6 +6,7 @@ import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../../l10n/l10n.dart';
+import '../motion.dart';
 
 String timeAgo(DateTime t) {
   final d = DateTime.now().difference(t);
@@ -82,7 +83,7 @@ class _AccountScreenState extends State<AccountScreen> {
       return;
     }
     final when = backup.syncedAt == null ? 'earlier' : timeAgo(backup.syncedAt!);
-    final useCloud = await showDialog<bool>(
+    final useCloud = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(

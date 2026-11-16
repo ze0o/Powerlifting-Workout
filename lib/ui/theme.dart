@@ -4,6 +4,7 @@ import 'dart:ui' show FontFeature;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'motion.dart';
 
 const List<FontFeature> kTabular = [FontFeature.tabularFigures()];
 
@@ -125,6 +126,7 @@ ThemeData buildTheme(Brightness b) {
   final base = ThemeData(useMaterial3: true, colorScheme: scheme);
   final radius = BorderRadius.circular(6);
   return base.copyWith(
+    pageTransitionsTheme: kPageTransitions,
     scaffoldBackgroundColor: p.bg,
     textTheme: base.textTheme.apply(bodyColor: p.ink, displayColor: p.ink),
     appBarTheme: AppBarTheme(

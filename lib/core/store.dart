@@ -2,6 +2,7 @@
 // short debounce and flushed when the app goes to the background.
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'calc.dart';
 import 'library.dart';
 import 'models.dart';
+import 'predict.dart';
 import 'templates.dart';
 
 typedef WorkoutStats = ({int done, int planned, double volume});
@@ -1208,6 +1210,42 @@ class AppStore extends ChangeNotifier {
       }
     }
     return out;
+  }
+
+  /// Every estimated max for a lift across all programs (best per day), for prediction.
+  List<E1rmPoint> e1rmLog(String lift) {
+    final best = <String, double>{};
+    for (final p in programs) {
+      for (final w in p.workouts) {
+        if (!_isIso(w.date)) continue;
+        for (final e in w.exercises) {
+          if (e.lift != lift) continue;
+          for (final x in e.log) {
+            if (x.status == 2) continue;
+            final v = estimatedMax(x.w, x.r, x.rpe);
+            if (v != null && (best[w.date] == null || v > best[w.date]!)) best[w.date] = v;
+          }
+        }
+      }
+    }
+    return [for (final e in best.entries) (date: e.key, kg: e.value)]..sort((a, b) => a.date.compareTo(b.date));
+  }
+
+  static bool _isIso(String s) => RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(s);
+
+  /// Where a lift is heading by [target] (an ISO date), or null without enough data.
+  Prediction? predict(String lift, String target) => predictLift(lift, e1rmLog(lift), todayIso(), target);
+
+  /// Predictions for all three lifts on [target], or null when any lift lacks data.
+  ({Prediction squat, Prediction bench, Prediction deadlift, double total, double low, double high})? predictTotal(
+      String target) {
+    final s = predict('squat', target), b = predict('bench', target), d = predict('deadlift', target);
+    if (s == null || b == null || d == null) return null;
+    final total = s.kg + b.kg + d.kg;
+    // The three ranges are partly independent, so the total's range is narrower than their sum.
+    double half(Prediction p) => (p.high - p.low) / 2;
+    final spread = math.sqrt(math.pow(half(s), 2) + math.pow(half(b), 2) + math.pow(half(d), 2));
+    return (squat: s, bench: b, deadlift: d, total: total, low: total - spread, high: total + spread);
   }
 
   double? bestOverall(String lift) {

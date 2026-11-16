@@ -14,6 +14,7 @@ import 'coach_screen.dart';
 import 'program_picker.dart';
 import 'tools_screen.dart';
 import '../../l10n/l10n.dart';
+import '../motion.dart';
 
 class AthleteScreen extends StatefulWidget {
   const AthleteScreen({super.key});
@@ -182,7 +183,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: federation,
+                        initialValue: federation,
                         isExpanded: true,
                         decoration: const InputDecoration(label: T('Federation')),
                         items: [
@@ -201,7 +202,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             key: ValueKey('class-$federation-$sex'),
-                            value: _classes.contains(weightClass) ? weightClass : fitClass(_classes, null),
+                            initialValue: _classes.contains(weightClass) ? weightClass : fitClass(_classes, null),
                             decoration: const InputDecoration(label: T('Weight class')),
                             items: [
                               for (final k in _classes)
@@ -219,7 +220,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         key: ValueKey('score-$federation'),
-                        value: score,
+                        initialValue: score,
                         isExpanded: true,
                         decoration: const InputDecoration(label: T('Points formula')),
                         items: [
@@ -376,7 +377,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
           T('Used for plate loading, warm-ups and the rest timer.', style: TextStyle(color: p.muted, fontSize: 12.5)),
           const SizedBox(height: 12),
           DropdownButtonFormField<double>(
-            value: [15.0, 20.0, 25.0].contains(g.bar) ? g.bar : 20.0,
+            initialValue: [15.0, 20.0, 25.0].contains(g.bar) ? g.bar : 20.0,
             decoration: const InputDecoration(label: T('Bar')),
             items: const [
               DropdownMenuItem(value: 20.0, child: T('20 kg (men\'s / competition)')),
@@ -417,7 +418,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
           Row(children: [
             Expanded(
               child: DropdownButtonFormField<int>(
-                value: g.restMain,
+                initialValue: g.restMain,
                 decoration: const InputDecoration(label: T('Main lifts')),
                 items: [
                   for (final sec in {120, 150, 180, 210, 240, 300, g.restMain}.toList()..sort())
@@ -429,7 +430,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: DropdownButtonFormField<int>(
-                value: g.restAccessory,
+                initialValue: g.restAccessory,
                 decoration: const InputDecoration(label: T('Accessories')),
                 items: [
                   for (final sec in {45, 60, 75, 90, 120, 150, g.restAccessory}.toList()..sort())
@@ -588,7 +589,7 @@ class _AthleteScreenState extends State<AthleteScreen> {
 
   Future<void> _restore(BuildContext context, AppStore store) async {
     final ctl = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const T('Restore backup'),

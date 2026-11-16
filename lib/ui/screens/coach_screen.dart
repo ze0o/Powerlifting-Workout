@@ -10,6 +10,7 @@ import '../../core/models.dart';
 import '../../core/store.dart';
 import '../../l10n/l10n.dart';
 import '../theme.dart';
+import '../motion.dart';
 import '../widgets.dart';
 import 'account_screen.dart' show timeAgo;
 import 'body_screen.dart';
@@ -339,6 +340,8 @@ class _CoachOverview extends StatelessWidget {
     final done = prog?.workouts.where((w) => w.completed).length ?? 0;
     final missed = prog?.workouts.where((w) => store.statusOf(w) == 'missed').length ?? 0;
     final meet = store.currentMeet;
+    final meetAhead = meet != null && (store.daysToMeet(meet) ?? -1) >= 1;
+    final forecast = store.predictTotal(meetAhead ? meet!.date : addDays(todayIso(), 28));
     final sent = cloud.sent.where((a) => a.athleteId == link.athleteId).toList();
 
     return ListView(
@@ -358,6 +361,12 @@ class _CoachOverview extends StatelessWidget {
               if (gl != null) StatTile(label: store.pointsName, value: fmt1(gl)),
               if (bw != null) StatTile(label: 'Bodyweight', value: fmt1(bw), unit: 'kg'),
               if (readiness != null) StatTile(label: 'Readiness (7 days)', value: '$readiness', unit: '/100'),
+              if (forecast != null)
+                StatTile(
+                  label: meetAhead ? 'Predicted total, meet day' : 'Predicted total, 4 weeks',
+                  value: fmt(r25(forecast.total)),
+                  unit: 'kg',
+                ),
             ]),
             const SizedBox(height: 12),
             for (final l in kLifts)
@@ -519,8 +528,12 @@ class _CoachProgramTab extends StatelessWidget {
             ),
           if (list.isEmpty)
             const Padding(padding: EdgeInsets.fromLTRB(16, 6, 16, 6), child: Panel(child: T('No workouts this week.'))),
-          for (final x in list)
-            Padding(padding: const EdgeInsets.fromLTRB(16, 6, 16, 6), child: WorkoutCard(workout: x)),
+          for (final (i, x) in list.indexed)
+            FadeInUp(
+              key: ValueKey('${prog.id}-$w-${x.id}'),
+              index: i,
+              child: Padding(padding: const EdgeInsets.fromLTRB(16, 6, 16, 6), child: WorkoutCard(workout: x)),
+            ),
         ],
       ),
     );
@@ -888,18 +901,20 @@ class _SendProgramSheetState extends State<_SendProgramSheet> {
           if (programs.isEmpty)
             const Panel(child: T('You have no programs yet. Build one in your Program tab first.'))
           else
-            Column(children: [
+            RadioGroup<String>(
+              groupValue: programId,
+              onChanged: (v) => setState(() => programId = v),
+              child: Column(children: [
                 for (final x in programs)
                   RadioListTile<String>(
                     value: x.id,
-                    groupValue: programId,
-                    onChanged: (v) => setState(() => programId = v),
                     contentPadding: EdgeInsets.zero,
                     title: Text(x.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                     subtitle: Text(tr(context, '{lvl} · {n} weeks · {w} workouts',
                         {'lvl': tr(context, x.level), 'n': x.weeks, 'w': x.workouts.length})),
                   ),
               ]),
+            ),
           const SizedBox(height: 4),
           ListTile(
             contentPadding: EdgeInsets.zero,

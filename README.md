@@ -1,4 +1,4 @@
-# Meet Prep Log v2.7
+# Meet Prep Log v2.8
 
 A powerlifting training log for Android, built with Flutter. It includes programs for beginner, intermediate and advanced lifters, plus a blank builder. Every workout can be edited. You log sets with RPE and referee lights, and the app tracks estimated maxes, your total with IPF GL points, and body composition. Coaches can follow their athletes, comment on workouts and send programs.
 
@@ -40,6 +40,33 @@ dart run flutter_launcher_icons
 ```
 
 This writes `android/app/src/main/res/mipmap-*` and `mipmap-anydpi-v26/ic_launcher.xml`. To change the icon, replace the three PNGs in `assets/icon/` (keep the plate inside the middle 61% of `foreground.png`, or launchers will crop it) and run the command again. `adaptive_icon_foreground_inset: 0` stops the tool adding extra padding, because the foreground already has it. iOS is off (`ios: false`) until there is an `ios/` folder.
+
+## What's new in v2.8: progress prediction and smoother motion
+
+**Prediction** (Progress tab, under the total card)
+- For each lift: the predicted estimated max **in 4 weeks**, or **on meet day** when a meet is planned (switch at the top of the card), with an 80% range, the trend in kg per week, and how many weeks of data it uses.
+- A bar shows the likely range, the prediction (dot), your entered max (line) and your goal (flag), with a verdict: *on track*, *within reach*, *possible, not likely* or *beyond the trend*.
+- The predicted total and your points at your meet weigh-in (or latest bodyweight).
+- The Meet tab's attempt planner shows the **trend on meet day** for each lift next to the projected max, and the coach overview shows the athlete's predicted total.
+
+How it works (`lib/core/predict.dart`, tested in `test/predict_test.dart`):
+1. The best estimated max of each 7-day block over the last 12 weeks (all programs, missed sets ignored).
+2. A straight line through those weekly bests, counting recent weeks more (weight halves every 6 weeks).
+3. The weekly change is limited to ±1.5% of the current level, since anything faster is almost always noise.
+4. Gains slow down the further ahead it looks: gain = slope × 8 weeks × (1 − e^(−days / 8 weeks)). So +1 kg/week becomes about +3.1 kg in 4 weeks, not +4.
+5. The 80% range comes from how much the weekly bests scatter (held between 1.5% and 5% of the level) plus the slope's uncertainty, and grows with distance.
+
+It needs top sets in at least **3 different weeks** spanning 2 weeks or more. The Python model in `analysis/progress_model.py` is still there for research across many lifters.
+
+**Motion**
+- Tabs fade and lift in when you switch (each tab still keeps its scroll position).
+- Screens slide in from the reading side and fade (mirrored in Arabic); iOS keeps its native swipe-back.
+- Every popup dialog grows in slightly and fades, and shrinks away when closed (`showAppDialog` in `lib/ui/motion.dart`).
+- Workout cards slide in one after another when you change week; the total, points and predictions count up to their new value; the prediction bars grow from the dot.
+- Loading → onboarding → app cross-fades.
+- If you turn on **Remove animations** in Android's accessibility settings, all of this switches off.
+
+Also in v2.8: dropdowns use `initialValue` and the send-program sheet uses `RadioGroup`, the current Flutter APIs (the old ones are deprecated since Flutter 3.33, and `flutter analyze` counts that as an issue).
 
 ## What's new in v2.7: federations and Wilks
 
@@ -245,6 +272,9 @@ Requires Flutter 3.22 or newer (Dart 3.4+).
 | `analysis/build_standing.py` | Builds the competition percentile tables from OpenIPF |
 | `assets/icon/` | App icon sources for `flutter_launcher_icons` |
 | `lib/ui/screens/meet_screen.dart` | Meet tab and meet-day mode |
+| `lib/core/predict.dart` | Progress prediction (weekly bests, weighted trend, slowing gains, 80% range) |
+| `lib/ui/screens/prediction_card.dart` | The Prediction card on the Progress tab |
+| `lib/ui/motion.dart` | Page transitions, tab cross-fade, animated dialogs, count-up numbers |
 | `lib/ui/screens/coach_screen.dart` | Coach tab, athlete view, read-only workout, comments, send-program sheet, and the athlete's Coach panel |
 | `lib/l10n/l10n.dart`, `lib/l10n/ar.dart` | Arabic/English: `T()`, `tr()` and the Arabic dictionary |
 | `lib/ui/theme.dart` | Palette (light/dark) and theme |
@@ -252,6 +282,7 @@ Requires Flutter 3.22 or newer (Dart 3.4+).
 | `lib/ui/screens/` | Program, Workout (with rest timer and warm-ups), Exercise editor, Progress, Body, Athlete, Program picker, Tools, Onboarding |
 | `test/core_test.dart` | Tests for the maths, templates, JSON, coaching and competition features |
 | `test/l10n_test.dart` | Checks every Arabic entry keeps its `{placeholders}` |
+| `test/predict_test.dart` | Prediction: minimum data, steady and flat trends, capped jumps, old data ignored, wider range further ahead |
 | `test/widget_test.dart` | Checks the light and dark themes build (replaces the counter test from `flutter create`) |
 
 ## How the data works

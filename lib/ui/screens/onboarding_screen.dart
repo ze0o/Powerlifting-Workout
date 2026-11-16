@@ -206,7 +206,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ]),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: federation,
+          initialValue: federation,
           isExpanded: true,
           decoration: const InputDecoration(label: T('Federation')),
           items: [for (final f in kFederations) DropdownMenuItem(value: f.id, child: Text(f.name))],
@@ -218,7 +218,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           key: ValueKey('class-$federation-$sex'),
-          value: _classes.contains(weightClass) ? weightClass : fitClass(_classes, null),
+          initialValue: _classes.contains(weightClass) ? weightClass : fitClass(_classes, null),
           decoration: const InputDecoration(label: T('Weight class you want to compete in')),
           items: [
             for (final k in _classes) DropdownMenuItem(value: k, child: Text(k.endsWith('+') ? '$k kg' : '−$k kg')),
@@ -251,7 +251,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   style: TextStyle(color: p.muted, fontSize: 12.5)),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: estLift,
+                initialValue: estLift,
                 decoration: const InputDecoration(label: T('Lift')),
                 items: [for (final l in kLifts) DropdownMenuItem(value: l, child: Text(kLiftNames[l]!))],
                 onChanged: (v) => setState(() => estLift = v ?? 'squat'),

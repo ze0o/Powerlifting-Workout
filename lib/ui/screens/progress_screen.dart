@@ -5,6 +5,8 @@ import '../../core/calc.dart';
 import '../../core/store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../motion.dart';
+import 'prediction_card.dart';
 import 'tools_screen.dart';
 import '../../l10n/l10n.dart';
 
@@ -34,6 +36,8 @@ class ProgressScreen extends StatelessWidget {
           child: Column(
             children: [
               const TotalCard(),
+              const SizedBox(height: 12),
+              const PredictionCard(),
               const SizedBox(height: 12),
               const WeekLoadCard(),
               const SizedBox(height: 12),
@@ -88,7 +92,7 @@ class TotalCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(total == null ? '—' : fmt(total),
+              CountUpText(total,
                   style: TextStyle(fontSize: 44, fontWeight: FontWeight.w900, height: 1, color: p.onNavy, fontFeatures: kTabular)),
               Padding(
                 padding: const EdgeInsets.only(left: 4, bottom: 4),
@@ -99,7 +103,8 @@ class TotalCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   T(store.pointsName.toUpperCase(), style: eyebrowStyle(context, color: p.navyMuted)),
-                  Text(glNow == null ? '—' : glNow.toStringAsFixed(1),
+                  CountUpText(glNow,
+                      format: (v) => v.toStringAsFixed(1),
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: p.onNavy, fontFeatures: kTabular)),
                 ],
               ),

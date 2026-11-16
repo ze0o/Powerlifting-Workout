@@ -15,6 +15,7 @@ import '../../core/cloud.dart';
 import 'coach_screen.dart';
 import 'exercise_editor.dart';
 import '../../l10n/l10n.dart';
+import '../motion.dart';
 
 class WorkoutScreen extends StatefulWidget {
   final String workoutId;
@@ -266,7 +267,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
         TextButton(
           onPressed: () async {
-            final pick = await showDialog<double>(
+            final pick = await showAppDialog<double>(
               context: context,
               builder: (ctx) => SimpleDialog(
                 title: const T("Today's main-lift loads"),
@@ -570,7 +571,7 @@ class ExerciseLogBlock extends StatelessWidget {
   Future<void> _confirmRemove(BuildContext context, AppStore store) async {
     final later = store.laterSameTitle(workout).where((x) => x.exercises.any((e) => e.id == slot.id)).length;
     var alsoLater = false;
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
@@ -879,7 +880,7 @@ class _ReadinessSheetState extends State<_ReadinessSheet> {
 /// Lists RPE-based changes and returns the ones the lifter accepts.
 Future<List<Adjustment>> showAdjustmentDialog(BuildContext context, List<Adjustment> list) async {
   final keep = {for (final a in list) a.id: true};
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(

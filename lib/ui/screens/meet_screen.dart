@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import 'workout_screen.dart';
 import '../../l10n/l10n.dart';
+import '../motion.dart';
 
 const _ordinals = ['1st', '2nd', '3rd'];
 
@@ -118,7 +119,7 @@ Future<void> editMeetDialog(BuildContext context, Meet? m) async {
   final place = TextEditingController(text: m?.location ?? '');
   var date = m?.date ?? addDays(todayIso(), 70);
   var weighIn = m?.weighIn ?? '2h';
-  final result = await showDialog<String>(
+  final result = await showAppDialog<String>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setS) => AlertDialog(
@@ -332,6 +333,7 @@ class _AttemptsPanel extends StatelessWidget {
         for (final l in kLifts) ...[
           Builder(builder: (context) {
             final s = store.suggestAttempts(l);
+            final trend = store.predict(l, meet.date);
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 LiftTag(l),
@@ -341,6 +343,18 @@ class _AttemptsPanel extends StatelessWidget {
                       maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: p.muted)),
                 ),
               ]),
+              if (trend != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    tr(context, 'Trend on meet day: {kg} kg (likely {lo}–{hi})', {
+                      'kg': fmt(r25(trend.kg)),
+                      'lo': fmt(r25(trend.low)),
+                      'hi': fmt(r25(trend.high)),
+                    }),
+                    style: TextStyle(fontSize: 12, color: p.blue, fontWeight: FontWeight.w600),
+                  ),
+                ),
               const SizedBox(height: 6),
               Row(children: [
                 for (var i = 0; i < 3; i++) ...[

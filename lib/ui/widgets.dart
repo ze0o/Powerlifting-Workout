@@ -6,6 +6,7 @@ import '../core/calc.dart';
 import '../core/store.dart';
 import 'theme.dart';
 import '../l10n/l10n.dart';
+import 'motion.dart';
 
 /// Navy header band with a red competition stripe. Pads for the status bar.
 class ScreenHeader extends StatelessWidget {
@@ -467,7 +468,7 @@ Future<String?> pickIsoDate(BuildContext context, String current, {String? help}
 
 Future<bool> confirmDialog(BuildContext context,
     {required String title, required String body, required String action, bool danger = false}) async {
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(tr(context, title)),
@@ -488,7 +489,7 @@ Future<bool> confirmDialog(BuildContext context,
 Future<String?> promptText(BuildContext context,
     {required String title, required String label, String initial = '', String action = 'Save'}) async {
   final ctl = TextEditingController(text: initial);
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(tr(ctx, title)),
