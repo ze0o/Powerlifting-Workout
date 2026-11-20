@@ -2,6 +2,33 @@
 
 A powerlifting training log for Android, built with Flutter. It includes programs for beginner, intermediate and advanced lifters, plus a blank builder. Every workout can be edited. You log sets with RPE and referee lights, and the app tracks estimated maxes, your total with IPF GL points, and body composition. Coaches can follow their athletes, comment on workouts and send programs.
 
+![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?logo=android&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+
+<p align="center">
+  <img src="assets/icon/icon.png" alt="Meet Prep Log app icon" width="120">
+</p>
+
+## At a glance
+
+| | |
+|---|---|
+| **Training** | Ready-made beginner, intermediate and advanced programs, or build your own; log sets with RPE and referee lights |
+| **Smart coaching** | RPE auto-regulation adjusts the next weeks from how hard your top sets felt |
+| **Progress prediction** | Weighted trend of your weekly best e1RM predicts your max in 4 weeks or on meet day, with an 80% range |
+| **Competition** | Meet planner, peak timing, attempt selection, weigh-in advice and a meet-day scoring screen |
+| **Scores** | IPF GL points, DOTS and Wilks, with where your total ranks among competitors |
+| **Coach mode** | Coaches follow athletes with a 6-character code, comment on workouts and send programs |
+| **Cloud & languages** | Accounts and sync with Supabase; English and Arabic (العربية) |
+
+**Tech:** Flutter and Dart (Android), Supabase (Postgres, auth, sync), `shared_preferences` for offline storage,
+Python scripts in `analysis/` for the prediction research and competition percentiles.
+
+Jump to: [Run it](#run-it) · [Code map](#code-map) · [How the data works](#how-the-data-works) · [What's new](#whats-new-in-v28-progress-prediction-and-smoother-motion)
+
 ## Setup checklist
 
 Everything you need to do by hand, in order. Each step links to the section with details.
